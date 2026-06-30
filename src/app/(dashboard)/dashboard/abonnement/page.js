@@ -85,10 +85,6 @@ function AbonnementContent() {
   }
 
   async function handleSubscribe(planId) {
-    if (!orgId) {
-      setToast({ type: "error", msg: "Aucune organisation trouvée. Veuillez vous reconnecter." });
-      return;
-    }
     setPaying(planId);
     try {
       const billingCycle = planId === "business"

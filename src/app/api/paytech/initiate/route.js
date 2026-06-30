@@ -1,15 +1,40 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { getPlanPrice, getPlanLabel } from "@/lib/plans";
 
 const PAYTECH_API_URL = "https://paytech.sn/api/payment/request-payment";
 
 export async function POST(request) {
   try {
-    const { planId, billingCycle, organizationId, organizationName } = await request.json();
+    const { planId, billingCycle, organizationId: clientOrgId, organizationName: clientOrgName } = await request.json();
 
-    if (!planId || !billingCycle || !organizationId) {
+    if (!planId || !billingCycle) {
       return NextResponse.json({ error: "Paramètres manquants" }, { status: 400 });
+    }
+
+    // Resolve organization server-side (bypasses RLS issues on client)
+    let organizationId = clientOrgId;
+    let organizationName = clientOrgName;
+
+    if (!organizationId) {
+      const supabaseServer = await createClient();
+      const { data: { user } } = await supabaseServer.auth.getUser();
+      if (!user) {
+        return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+      }
+      const admin = createAdminClient();
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("organization_id, organizations(id, name)")
+        .eq("id", user.id)
+        .single();
+      organizationId = profile?.organization_id || profile?.organizations?.id;
+      organizationName = profile?.organizations?.name || clientOrgName || "Mon entreprise";
+    }
+
+    if (!organizationId) {
+      return NextResponse.json({ error: "Organisation introuvable. Veuillez contacter le support." }, { status: 400 });
     }
 
     const amount = getPlanPrice(planId, billingCycle);
