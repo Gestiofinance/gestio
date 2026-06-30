@@ -41,14 +41,8 @@ export async function updateSession(request) {
   }
 
   if (user && isAuthPage) {
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("is_super_admin")
-      .eq("id", user.id)
-      .maybeSingle();
-
     const url = request.nextUrl.clone();
-    url.pathname = prof?.is_super_admin === true ? "/admin" : "/dashboard";
+    url.pathname = user.app_metadata?.is_super_admin === true ? "/admin" : "/dashboard";
     return NextResponse.redirect(url);
   }
 

@@ -40,7 +40,7 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { signOut, profile } = useAuth();
+  const { signOut, profile, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const { mobileOpen, setMobileOpen } = useSidebar();
 
@@ -114,7 +114,7 @@ export function Sidebar() {
         </nav>
 
         {/* Admin link for super admins */}
-        {profile?.is_super_admin && (
+        {(user?.app_metadata?.is_super_admin === true || profile?.is_super_admin === true) && (
           <div className="px-3 pb-2">
             <Link
               href="/admin"

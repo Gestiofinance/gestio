@@ -31,20 +31,11 @@ export default function LoginPage() {
       return;
     }
 
-    // Use user from sign-in response directly (avoids getUser() timing issues)
-    const userId = signInData?.user?.id;
-    if (userId) {
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("is_super_admin")
-        .eq("id", userId)
-        .single();
-
-      if (prof?.is_super_admin === true) {
-        router.push("/admin");
-        router.refresh();
-        return;
-      }
+    // Check is_super_admin from JWT app_metadata (no RLS, always reliable)
+    if (signInData?.user?.app_metadata?.is_super_admin === true) {
+      router.push("/admin");
+      router.refresh();
+      return;
     }
 
     router.push("/dashboard");

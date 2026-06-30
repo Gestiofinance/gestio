@@ -1,23 +1,37 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
-import { useAuth } from "@/hooks/useAuth";
+import { createClient } from "@/lib/supabase/client";
 import { Shield } from "lucide-react";
 
 export default function AdminLayout({ children }) {
-  const { profile, loading } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && profile && !profile.is_super_admin) {
-      router.push("/dashboard");
+    async function checkAdmin() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      // Check from JWT app_metadata (set via Supabase SQL, no RLS issues)
+      if (user.app_metadata?.is_super_admin === true) {
+        setIsAdmin(true);
+      } else {
+        router.push("/dashboard");
+      }
+      setLoading(false);
     }
-    if (!loading && !profile) {
-      router.push("/login");
-    }
-  }, [profile, loading, router]);
+
+    checkAdmin();
+  }, [router]);
 
   if (loading) {
     return (
@@ -30,7 +44,7 @@ export default function AdminLayout({ children }) {
     );
   }
 
-  if (!profile?.is_super_admin) return null;
+  if (!isAdmin) return null;
 
   return (
     <div className="h-full flex bg-slate-950">
