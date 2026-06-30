@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSupabase } from "@/hooks/useSupabase";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { getPlanLabel, getCycleLabel } from "@/lib/plans";
 import { Search, CreditCard, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react";
@@ -29,7 +28,6 @@ const planColors = {
 };
 
 export default function AdminAbonnementsPage() {
-  const supabase = useSupabase();
   const [subscriptions, setSubscriptions] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,13 +39,17 @@ export default function AdminAbonnementsPage() {
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
-    const [{ data: subs }, { data: pays }] = await Promise.all([
-      supabase.from("subscriptions").select("*, organizations(name, email)").order("created_at", { ascending: false }),
-      supabase.from("subscription_payments").select("*, organizations(name)").order("created_at", { ascending: false }),
-    ]);
-    setSubscriptions(subs || []);
-    setPayments(pays || []);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/admin/subscriptions");
+      if (!res.ok) throw new Error("Erreur API");
+      const { subscriptions: subs, payments: pays } = await res.json();
+      setSubscriptions(subs || []);
+      setPayments(pays || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const planStats = {

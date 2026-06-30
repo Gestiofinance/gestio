@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSupabase } from "@/hooks/useSupabase";
 import { formatShortDate } from "@/lib/utils";
 import { getPlanLabel, getCycleLabel } from "@/lib/plans";
 import { Building2, Search, Users, CheckCircle, Clock, XCircle, Eye } from "lucide-react";
@@ -19,7 +18,6 @@ const statusLabels = {
 };
 
 export default function AdminUsersPage() {
-  const supabase = useSupabase();
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -29,20 +27,23 @@ export default function AdminUsersPage() {
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
-    const [{ data: organizations }, { data: subscriptions }, { data: profiles }] = await Promise.all([
-      supabase.from("organizations").select("*").order("created_at", { ascending: false }),
-      supabase.from("subscriptions").select("*"),
-      supabase.from("profiles").select("id, full_name, email, role, organization_id, created_at"),
-    ]);
+    try {
+      const res = await fetch("/api/admin/users");
+      if (!res.ok) throw new Error("Erreur API");
+      const { organizations, subscriptions, profiles } = await res.json();
 
-    const list = (organizations || []).map((org) => {
-      const sub = (subscriptions || []).find((s) => s.organization_id === org.id);
-      const members = (profiles || []).filter((p) => p.organization_id === org.id);
-      const owner = members.find((m) => m.role === "proprietaire") || members[0];
-      return { ...org, sub, members, owner };
-    });
-    setOrgs(list);
-    setLoading(false);
+      const list = (organizations || []).map((org) => {
+        const sub = (subscriptions || []).find((s) => s.organization_id === org.id);
+        const members = (profiles || []).filter((p) => p.organization_id === org.id);
+        const owner = members.find((m) => m.role === "proprietaire") || members[0];
+        return { ...org, sub, members, owner };
+      });
+      setOrgs(list);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const filtered = orgs.filter((o) => {

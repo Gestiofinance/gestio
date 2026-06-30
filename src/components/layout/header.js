@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Calendar, Clock, Menu, AlertTriangle, CreditCard, X } from "lucide-react";
+import { Search, Calendar, Clock, Menu, AlertTriangle, CreditCard, X, Info, Sparkles } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
 
-function useExpirationWarning() {
-  const [warning, setWarning] = useState(null); // null = no warning, { daysLeft, type }
+// Returns banner config based on subscription state
+function useSubscriptionBanner() {
+  const [banner, setBanner] = useState(null); // null = no banner
 
   useEffect(() => {
     fetch("/api/subscription/data")
@@ -16,82 +17,108 @@ function useExpirationWarning() {
         if (!subscription) return;
 
         const now = new Date();
-        const THRESHOLD_DAYS = 5;
 
-        // Check trial expiry
-        if (subscription.status === "trial" && subscription.trial_end) {
-          const end = new Date(subscription.trial_end);
-          const daysLeft = Math.ceil((end - now) / 86400000);
-          if (daysLeft <= THRESHOLD_DAYS && daysLeft >= 0) {
-            setWarning({ daysLeft, type: "trial" });
+        if (subscription.status === "trial") {
+          const end = subscription.trial_end ? new Date(subscription.trial_end) : null;
+          const daysLeft = end ? Math.ceil((end - now) / 86400000) : null;
+
+          if (daysLeft !== null && daysLeft >= 0) {
+            // Always show trial banner; urgent mode when ≤ 3 days
+            setBanner({ type: daysLeft <= 3 ? "trial_urgent" : "trial_info", daysLeft });
           }
         }
 
-        // Check active subscription expiry
         if (subscription.status === "active" && subscription.current_period_end) {
           const end = new Date(subscription.current_period_end);
           const daysLeft = Math.ceil((end - now) / 86400000);
-          if (daysLeft <= THRESHOLD_DAYS && daysLeft >= 0) {
-            setWarning({ daysLeft, type: "active" });
+          if (daysLeft <= 5 && daysLeft >= 0) {
+            setBanner({ type: "active_warning", daysLeft });
           }
         }
       })
       .catch(() => {});
   }, []);
 
-  return warning;
+  return banner;
 }
 
-function ExpirationBanner({ warning, onClose }) {
-  const { daysLeft, type } = warning;
+function SubscriptionBanner({ banner, onClose }) {
+  const { type, daysLeft } = banner;
 
   const isToday = daysLeft === 0;
   const isTomorrow = daysLeft === 1;
+  const dayLabel = isToday ? "aujourd'hui" : isTomorrow ? "demain" : `dans ${daysLeft} jour${daysLeft > 1 ? "s" : ""}`;
 
-  const dayLabel = isToday
-    ? "aujourd'hui"
-    : isTomorrow
-    ? "demain"
-    : `dans ${daysLeft} jour${daysLeft > 1 ? "s" : ""}`;
+  // Visual config per type
+  const config = {
+    trial_info: {
+      bg: "bg-amber-500",
+      icon: <Sparkles className="w-4 h-4 shrink-0" />,
+      text: `Période d'essai gratuite — ${daysLeft} jour${daysLeft > 1 ? "s" : ""} restant${daysLeft > 1 ? "s" : ""}`,
+      showButton: false,
+    },
+    trial_urgent: {
+      bg: "bg-orange-600",
+      icon: <AlertTriangle className="w-4 h-4 shrink-0" />,
+      text: `Votre essai expire ${dayLabel}`,
+      showButton: true,
+      buttonLabel: "Souscrire maintenant",
+    },
+    active_warning: {
+      bg: "bg-red-600",
+      icon: <AlertTriangle className="w-4 h-4 shrink-0" />,
+      text: `Votre abonnement expire ${dayLabel}`,
+      showButton: true,
+      buttonLabel: "Renouveler",
+    },
+  }[type];
 
-  const text =
-    type === "trial"
-      ? `Votre période d'essai expire ${dayLabel}`
-      : `Votre abonnement expire ${dayLabel}`;
-
-  // Progress bar: 5 days max
-  const pct = Math.max(0, Math.min(100, (daysLeft / 5) * 100));
+  // Progress bar for trial_info: full 14 days range
+  // For warnings: 5-day countdown
+  const maxDays = type === "trial_info" ? 14 : 5;
+  const pct = Math.max(0, Math.min(100, (daysLeft / maxDays) * 100));
 
   return (
-    <div className="bg-red-600 text-white px-4 py-2 flex items-center gap-3 text-sm sticky top-0 z-40">
-      <AlertTriangle className="w-4 h-4 shrink-0" />
+    <div className={`${config.bg} text-white px-4 py-2 flex items-center gap-3 text-sm`}>
+      {config.icon}
 
-      <span className="font-medium">{text}</span>
+      <span className="font-medium">{config.text}</span>
 
-      {/* Timeline bar */}
-      <div className="hidden sm:flex items-center gap-2 flex-1 max-w-48">
-        <div className="flex-1 h-1.5 bg-red-400/50 rounded-full overflow-hidden">
+      {/* Progress bar */}
+      <div className="hidden sm:flex items-center gap-2 flex-1 max-w-40">
+        <div className="flex-1 h-1.5 bg-white/25 rounded-full overflow-hidden">
           <div
             className="h-full bg-white rounded-full transition-all"
             style={{ width: `${pct}%` }}
           />
         </div>
-        <span className="text-xs text-red-100 whitespace-nowrap font-medium">
+        <span className="text-xs text-white/70 whitespace-nowrap font-medium">
           {isToday ? "Expire ce soir" : `J−${daysLeft}`}
         </span>
       </div>
 
-      <Link
-        href="/dashboard/abonnement"
-        className="flex items-center gap-1.5 px-3 py-1 bg-white text-red-600 rounded-lg text-xs font-bold hover:bg-red-50 transition-colors shrink-0 ml-auto sm:ml-0"
-      >
-        <CreditCard className="w-3.5 h-3.5" />
-        Renouveler
-      </Link>
+      {config.showButton && (
+        <Link
+          href="/dashboard/abonnement"
+          className="flex items-center gap-1.5 px-3 py-1 bg-white text-slate-800 rounded-lg text-xs font-bold hover:bg-white/90 transition-colors shrink-0 ml-auto sm:ml-0"
+        >
+          <CreditCard className="w-3.5 h-3.5" />
+          {config.buttonLabel}
+        </Link>
+      )}
+
+      {!config.showButton && (
+        <Link
+          href="/dashboard/abonnement"
+          className="hidden sm:flex items-center gap-1 text-xs text-white/80 hover:text-white underline underline-offset-2 shrink-0 ml-auto"
+        >
+          Voir les plans
+        </Link>
+      )}
 
       <button
         onClick={onClose}
-        className="p-1 hover:bg-red-500 rounded-md transition-colors shrink-0"
+        className="p-1 hover:bg-white/20 rounded-md transition-colors shrink-0"
         aria-label="Fermer"
       >
         <X className="w-3.5 h-3.5" />
@@ -103,7 +130,7 @@ function ExpirationBanner({ warning, onClose }) {
 export function Header({ title }) {
   const [now, setNow] = useState(new Date());
   const { setMobileOpen } = useSidebar();
-  const warning = useExpirationWarning();
+  const banner = useSubscriptionBanner();
   const [bannerClosed, setBannerClosed] = useState(false);
 
   useEffect(() => {
@@ -118,12 +145,10 @@ export function Header({ title }) {
 
   return (
     <div className="sticky top-0 z-30">
-      {/* Expiration warning banner */}
-      {warning && !bannerClosed && (
-        <ExpirationBanner warning={warning} onClose={() => setBannerClosed(true)} />
+      {banner && !bannerClosed && (
+        <SubscriptionBanner banner={banner} onClose={() => setBannerClosed(true)} />
       )}
 
-      {/* Main header */}
       <header className="h-16 border-b border-border bg-white flex items-center justify-between px-4 sm:px-6">
         {/* Mobile: hamburger + logo */}
         <div className="flex items-center gap-3 lg:hidden">
