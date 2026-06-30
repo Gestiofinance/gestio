@@ -1,21 +1,28 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { getPlanPrice, getPlanLabel } from "@/lib/plans";
+import { getPlanLabel } from "@/lib/plans";
 
 const PAYTECH_API_URL = "https://paytech.sn/api/payment/request-payment";
 
 export async function POST(request) {
   try {
-    const { planId, billingCycle, organizationId: clientOrgId, organizationName: clientOrgName } = await request.json();
+    const {
+      planId,
+      billingCycle,
+      organizationId: clientOrgId,
+      organizationName: clientOrgName,
+    } = await request.json();
 
     if (!planId || !billingCycle) {
       return NextResponse.json({ error: "Paramètres manquants" }, { status: 400 });
     }
 
-    // Resolve organization server-side (bypasses RLS issues on client)
+    const admin = createAdminClient();
+
+    // Resolve organization server-side (bypasses client-side RLS issues)
     let organizationId = clientOrgId;
-    let organizationName = clientOrgName;
+    let organizationName = clientOrgName || "Mon entreprise";
 
     if (!organizationId) {
       const supabaseServer = await createClient();
@@ -23,7 +30,6 @@ export async function POST(request) {
       if (!user) {
         return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
       }
-      const admin = createAdminClient();
       const { data: profile } = await admin
         .from("profiles")
         .select("organization_id, organizations(id, name)")
@@ -34,18 +40,29 @@ export async function POST(request) {
     }
 
     if (!organizationId) {
-      return NextResponse.json({ error: "Organisation introuvable. Veuillez contacter le support." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Organisation introuvable. Veuillez contacter le support." },
+        { status: 400 }
+      );
     }
 
-    const amount = getPlanPrice(planId, billingCycle);
+    // Fetch price from DB (editable by admin)
+    const { data: priceRow } = await admin
+      .from("plan_prices")
+      .select("price")
+      .eq("plan_id", planId)
+      .eq("cycle", billingCycle)
+      .single();
+    const amount = priceRow?.price;
     if (!amount || amount <= 0) {
-      return NextResponse.json({ error: "Plan ou cycle invalide" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Prix introuvable pour ce plan. Veuillez contacter le support." },
+        { status: 400 }
+      );
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const env = process.env.PAYTECH_ENV || "prod";
-
-    // ref_command = unique reference per PayTech docs (required)
     const refCommand = `GESTIO_${organizationId}_${planId}_${Date.now()}`;
     const commandName = `Gestio ${getPlanLabel(planId)} — ${
       billingCycle === "monthly" ? "Mensuel" : billingCycle === "annual" ? "Annuel" : "Trimestriel"
@@ -85,9 +102,7 @@ export async function POST(request) {
     }
 
     // Upsert subscription as pending
-    const supabase = createAdminClient();
-
-    const { data: existingSub } = await supabase
+    const { data: existingSub } = await admin
       .from("subscriptions")
       .select("id, status")
       .eq("organization_id", organizationId)
@@ -104,13 +119,13 @@ export async function POST(request) {
     };
 
     if (existingSub) {
-      await supabase.from("subscriptions").update(subPayload).eq("id", existingSub.id);
+      await admin.from("subscriptions").update(subPayload).eq("id", existingSub.id);
     } else {
-      await supabase.from("subscriptions").insert(subPayload);
+      await admin.from("subscriptions").insert(subPayload);
     }
 
     // Create pending payment record
-    await supabase.from("subscription_payments").insert({
+    await admin.from("subscription_payments").insert({
       organization_id: organizationId,
       plan_id: planId,
       billing_cycle: billingCycle,

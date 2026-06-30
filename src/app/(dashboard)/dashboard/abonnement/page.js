@@ -6,18 +6,11 @@ import { Header } from "@/components/layout/header";
 import { useAuth } from "@/hooks/useAuth";
 import { useSupabase } from "@/hooks/useSupabase";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
-import {
-  PLANS, getPlanPrice, getAnnualMonthlyEquivalent, getAnnualSavings,
-} from "@/lib/plans";
+import { PLANS } from "@/lib/plans";
 import {
   CreditCard, CheckCircle, Clock, AlertCircle, Zap, Users, FileText,
   Star, Shield, ArrowRight, Loader2, Check, Crown,
 } from "lucide-react";
-
-const CYCLE_OPTIONS = [
-  { id: "monthly", label: "Mensuel" },
-  { id: "annual", label: "Annuel", badge: "-12%" },
-];
 
 const statusColors = {
   trial: "text-warning-500 bg-warning-50 border-warning-200",
@@ -52,6 +45,7 @@ function AbonnementContent() {
   const searchParams = useSearchParams();
   const { organization, profile } = useAuth();
   const supabase = useSupabase();
+
   const [subscription, setSubscription] = useState(null);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,9 +53,19 @@ function AbonnementContent() {
   const [paying, setPaying] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // Use org from context or fallback to organization_id on profile
+  // DB prices, keyed by plan → cycle
+  const [dbPrices, setDbPrices] = useState({});
+
   const orgId = organization?.id || profile?.organization_id;
   const orgName = organization?.name || profile?.full_name || "Mon entreprise";
+
+  // Load prices from DB
+  useEffect(() => {
+    fetch("/api/admin/plan-prices")
+      .then((r) => r.json())
+      .then((data) => { if (data && !data.error) setDbPrices(data); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (orgId) loadData();
@@ -84,12 +88,16 @@ function AbonnementContent() {
     setLoading(false);
   }
 
+  // Get price from DB, fallback to 0
+  function getPrice(planId, billingCycle) {
+    return dbPrices[planId]?.[billingCycle] ?? 0;
+  }
+
   async function handleSubscribe(planId) {
     setPaying(planId);
     try {
-      const billingCycle = planId === "business"
-        ? (cycle === "annual" ? "annual" : "quarterly")
-        : cycle;
+      // Business is always quarterly, Standard/Pro use selected cycle
+      const billingCycle = planId === "business" ? "quarterly" : cycle;
 
       const res = await fetch("/api/paytech/initiate", {
         method: "POST",
@@ -97,7 +105,7 @@ function AbonnementContent() {
         body: JSON.stringify({
           planId,
           billingCycle,
-          organizationId: orgId,
+          organizationId: orgId || null,
           organizationName: orgName,
         }),
       });
@@ -106,26 +114,32 @@ function AbonnementContent() {
 
       if (data.redirect_url) {
         window.location.href = data.redirect_url;
-        return; // Don't setPaying(null) — page will redirect
+        return;
       }
 
       setToast({ type: "error", msg: data.error || "Erreur lors de l'initiation du paiement." });
-    } catch (e) {
-      console.error("Subscribe error:", e);
+    } catch {
       setToast({ type: "error", msg: "Erreur réseau. Veuillez réessayer." });
     }
     setPaying(null);
   }
 
-  const isCurrentPlan = (planId) => subscription?.plan_id === planId && subscription?.status === "active";
+  const isCurrentPlan = (planId) =>
+    subscription?.plan_id === planId && subscription?.status === "active";
 
   const trialDaysLeft = subscription?.trial_end
     ? Math.max(0, Math.ceil((new Date(subscription.trial_end) - new Date()) / 86400000))
     : null;
 
-  const businessCyclePrice = cycle === "annual"
-    ? getPlanPrice("business", "annual")
-    : getPlanPrice("business", "quarterly");
+  // Dynamic annual discount based on DB prices for Standard
+  const annualDiscount = dbPrices.standard?.monthly && dbPrices.standard?.annual
+    ? Math.round((1 - dbPrices.standard.annual / (dbPrices.standard.monthly * 12)) * 100)
+    : 12;
+
+  const CYCLE_OPTIONS = [
+    { id: "monthly", label: "Mensuel" },
+    { id: "annual", label: "Annuel", badge: `-${annualDiscount}%` },
+  ];
 
   return (
     <div>
@@ -171,9 +185,11 @@ function AbonnementContent() {
           </div>
         )}
 
-        {/* Billing cycle toggle */}
+        {/* Plans */}
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-4">Choisissez votre plan</h2>
+
+          {/* Cycle toggle — applies to Standard & Pro only */}
           <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit mb-6">
             {CYCLE_OPTIONS.map((opt) => (
               <button
@@ -193,16 +209,26 @@ function AbonnementContent() {
             ))}
           </div>
 
-          {/* Plans grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {Object.values(PLANS).map((plan) => {
               const Icon = planIcons[plan.id];
               const current = isCurrentPlan(plan.id);
-              const price = plan.id === "business"
-                ? (cycle === "annual" ? getPlanPrice("business", "annual") : getPlanPrice("business", "quarterly"))
-                : getPlanPrice(plan.id, cycle);
-              const monthlyEquiv = cycle === "annual" ? getAnnualMonthlyEquivalent(plan.id) : null;
-              const savings = cycle === "annual" ? getAnnualSavings(plan.id) : null;
+
+              // Business: always quarterly — Standard/Pro: follow cycle toggle
+              const isBusinessPlan = plan.id === "business";
+              const effectiveCycle = isBusinessPlan ? "quarterly" : cycle;
+              const price = getPrice(plan.id, effectiveCycle);
+
+              // Annual monthly equivalent (only for Standard/Pro with annual selected)
+              const showAnnualEquiv = !isBusinessPlan && cycle === "annual" && dbPrices[plan.id]?.annual;
+              const monthlyEquiv = showAnnualEquiv ? Math.round(dbPrices[plan.id].annual / 12) : null;
+              const savings = showAnnualEquiv && dbPrices[plan.id]?.monthly
+                ? dbPrices[plan.id].monthly * 12 - dbPrices[plan.id].annual
+                : null;
+
+              const cycleLabel = isBusinessPlan
+                ? "/trimestre"
+                : cycle === "annual" ? "/an" : "/mois";
 
               return (
                 <div
@@ -227,25 +253,23 @@ function AbonnementContent() {
                   <p className="text-sm text-muted mb-4">{plan.description}</p>
 
                   <div className="mb-2">
-                    <span className="text-3xl font-extrabold text-foreground">{formatCurrency(price)}</span>
-                    <span className="text-sm text-muted ml-1">
-                      {plan.id === "business"
-                        ? (cycle === "annual" ? "/an" : "/trimestre")
-                        : (cycle === "annual" ? "/an" : "/mois")}
+                    <span className="text-3xl font-extrabold text-foreground">
+                      {price > 0 ? formatCurrency(price) : "—"}
                     </span>
+                    <span className="text-sm text-muted ml-1">{cycleLabel}</span>
                   </div>
 
-                  {cycle === "annual" && monthlyEquiv && (
+                  {monthlyEquiv && (
                     <p className="text-xs text-success-600 font-medium mb-1">
                       ≈ {formatCurrency(monthlyEquiv)}/mois
                     </p>
                   )}
-                  {cycle === "annual" && savings && (
+                  {savings && savings > 0 && (
                     <p className="text-xs text-success-500 mb-4">
                       Économisez {formatCurrency(savings)}/an
                     </p>
                   )}
-                  {cycle !== "annual" && <div className="mb-4" />}
+                  {(!monthlyEquiv || isBusinessPlan) && <div className="mb-4" />}
 
                   <ul className="space-y-2 flex-1 mb-6">
                     {plan.features.map((f) => (
@@ -284,7 +308,7 @@ function AbonnementContent() {
           <Shield className="w-4 h-4 text-muted shrink-0" />
           <p className="text-xs text-muted">
             Paiements sécurisés via <strong>PayTech</strong> — Wave, Orange Money, Free Money, carte bancaire acceptés.
-            Annulez à tout moment. Aucune reconduction tacite sans votre accord.
+            Annulez à tout moment.
           </p>
         </div>
 
@@ -308,7 +332,9 @@ function AbonnementContent() {
                     {payments.map((p) => (
                       <tr key={p.id} className="border-b border-slate-50">
                         <td className="px-5 py-3 text-sm font-medium text-foreground">{PLANS[p.plan_id]?.name || p.plan_id}</td>
-                        <td className="px-5 py-3 text-sm text-slate-500">{p.billing_cycle === "monthly" ? "Mensuel" : p.billing_cycle === "annual" ? "Annuel" : "Trimestriel"}</td>
+                        <td className="px-5 py-3 text-sm text-slate-500">
+                          {p.billing_cycle === "monthly" ? "Mensuel" : p.billing_cycle === "annual" ? "Annuel" : "Trimestriel"}
+                        </td>
                         <td className="px-5 py-3 text-sm font-semibold text-foreground text-right">{formatCurrency(p.amount)}</td>
                         <td className="px-5 py-3">
                           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -319,7 +345,9 @@ function AbonnementContent() {
                             {p.status === "completed" ? "Payé" : p.status === "pending" ? "En attente" : "Échoué"}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-sm text-muted">{p.paid_at ? formatShortDate(p.paid_at) : formatShortDate(p.created_at)}</td>
+                        <td className="px-5 py-3 text-sm text-muted">
+                          {p.paid_at ? formatShortDate(p.paid_at) : formatShortDate(p.created_at)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
