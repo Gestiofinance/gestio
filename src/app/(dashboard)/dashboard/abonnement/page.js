@@ -359,7 +359,7 @@ function AbonnementContent() {
                           {p.paid_at ? formatShortDate(p.paid_at) : formatShortDate(p.created_at)}
                         </td>
                         <td className="px-3 py-2">
-                          {(p.status === "completed" || p.status === "pending") && (
+                          {p.status === "completed" && (
                             <ReceiptDownloadButton payment={p} organizationName={orgName} />
                           )}
                         </td>
