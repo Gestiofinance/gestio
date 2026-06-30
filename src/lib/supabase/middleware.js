@@ -45,10 +45,10 @@ export async function updateSession(request) {
       .from("profiles")
       .select("is_super_admin")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     const url = request.nextUrl.clone();
-    url.pathname = prof?.is_super_admin ? "/admin" : "/dashboard";
+    url.pathname = prof?.is_super_admin === true ? "/admin" : "/dashboard";
     return NextResponse.redirect(url);
   }
 

@@ -20,7 +20,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -31,16 +31,16 @@ export default function LoginPage() {
       return;
     }
 
-    // Check super admin → redirect to admin panel
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (authUser) {
+    // Use user from sign-in response directly (avoids getUser() timing issues)
+    const userId = signInData?.user?.id;
+    if (userId) {
       const { data: prof } = await supabase
         .from("profiles")
         .select("is_super_admin")
-        .eq("id", authUser.id)
+        .eq("id", userId)
         .single();
 
-      if (prof?.is_super_admin) {
+      if (prof?.is_super_admin === true) {
         router.push("/admin");
         router.refresh();
         return;
