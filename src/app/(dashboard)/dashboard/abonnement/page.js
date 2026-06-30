@@ -50,7 +50,7 @@ const planIconColors = {
 
 function AbonnementContent() {
   const searchParams = useSearchParams();
-  const { organization } = useAuth();
+  const { organization, profile } = useAuth();
   const supabase = useSupabase();
   const [subscription, setSubscription] = useState(null);
   const [payments, setPayments] = useState([]);
@@ -59,9 +59,13 @@ function AbonnementContent() {
   const [paying, setPaying] = useState(null);
   const [toast, setToast] = useState(null);
 
+  // Use org from context or fallback to organization_id on profile
+  const orgId = organization?.id || profile?.organization_id;
+  const orgName = organization?.name || profile?.full_name || "Mon entreprise";
+
   useEffect(() => {
-    if (organization) loadData();
-  }, [organization]);
+    if (orgId) loadData();
+  }, [orgId]);
 
   useEffect(() => {
     const success = searchParams.get("success");
@@ -72,8 +76,8 @@ function AbonnementContent() {
 
   async function loadData() {
     const [{ data: sub }, { data: pays }] = await Promise.all([
-      supabase.from("subscriptions").select("*").eq("organization_id", organization.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("subscription_payments").select("*").eq("organization_id", organization.id).order("created_at", { ascending: false }),
+      supabase.from("subscriptions").select("*").eq("organization_id", orgId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("subscription_payments").select("*").eq("organization_id", orgId).order("created_at", { ascending: false }),
     ]);
     setSubscription(sub);
     setPayments(pays || []);
@@ -81,7 +85,7 @@ function AbonnementContent() {
   }
 
   async function handleSubscribe(planId) {
-    if (!organization?.id) {
+    if (!orgId) {
       setToast({ type: "error", msg: "Aucune organisation trouvée. Veuillez vous reconnecter." });
       return;
     }
@@ -97,8 +101,8 @@ function AbonnementContent() {
         body: JSON.stringify({
           planId,
           billingCycle,
-          organizationId: organization.id,
-          organizationName: organization.name || "Gestio",
+          organizationId: orgId,
+          organizationName: orgName,
         }),
       });
 

@@ -18,7 +18,7 @@ export async function POST(request) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const env = process.env.PAYTECH_ENV || "test";
+    const env = process.env.PAYTECH_ENV || "prod";
 
     // ref_command = unique reference per PayTech docs (required)
     const refCommand = `GESTIO_${organizationId}_${planId}_${Date.now()}`;
