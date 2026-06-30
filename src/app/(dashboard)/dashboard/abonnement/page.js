@@ -8,9 +8,10 @@ import { useSupabase } from "@/hooks/useSupabase";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { PLANS } from "@/lib/plans";
 import {
-  CreditCard, CheckCircle, Clock, AlertCircle, Zap, Users, FileText,
+  CreditCard, CheckCircle, Clock, AlertCircle, Zap, Users,
   Star, Shield, ArrowRight, Loader2, Check, Crown,
 } from "lucide-react";
+import { ReceiptDownloadButton } from "@/components/pdf/receipt-download-button";
 
 const statusColors = {
   trial: "text-warning-500 bg-warning-50 border-warning-200",
@@ -326,6 +327,7 @@ function AbonnementContent() {
                       <th className="text-right text-xs font-medium text-muted px-5 py-3">Montant</th>
                       <th className="text-left text-xs font-medium text-muted px-5 py-3">Statut</th>
                       <th className="text-left text-xs font-medium text-muted px-5 py-3">Date</th>
+                      <th className="px-5 py-3" />
                     </tr>
                   </thead>
                   <tbody>
@@ -347,6 +349,11 @@ function AbonnementContent() {
                         </td>
                         <td className="px-5 py-3 text-sm text-muted">
                           {p.paid_at ? formatShortDate(p.paid_at) : formatShortDate(p.created_at)}
+                        </td>
+                        <td className="px-3 py-2">
+                          {p.status === "completed" && (
+                            <ReceiptDownloadButton payment={p} organizationName={orgName} />
+                          )}
                         </td>
                       </tr>
                     ))}
