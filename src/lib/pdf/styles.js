@@ -1,0 +1,176 @@
+import { StyleSheet } from "@react-pdf/renderer";
+
+const shared = {
+  page: { fontFamily: "Helvetica", fontSize: 10, padding: 40 },
+  bold: { fontFamily: "Helvetica-Bold" },
+  row: { flexDirection: "row" },
+  spaceBetween: { flexDirection: "row", justifyContent: "space-between" },
+};
+
+export const modernStyles = StyleSheet.create({
+  page: { ...shared.page, backgroundColor: "#FFFFFF" },
+  header: { ...shared.spaceBetween, marginBottom: 30 },
+  logo: { fontSize: 24, fontFamily: "Helvetica-Bold", color: "#5E5CE6" },
+  docType: { fontSize: 11, color: "#8B5CF6", fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 2 },
+  docNumber: { fontSize: 18, fontFamily: "Helvetica-Bold", color: "#1e293b" },
+  accentBar: { height: 4, backgroundColor: "#5E5CE6", borderRadius: 2, marginBottom: 25 },
+  gradientBar: { height: 4, borderRadius: 2, marginBottom: 25 },
+  infoSection: { ...shared.spaceBetween, marginBottom: 25 },
+  infoBlock: { width: "48%" },
+  infoLabel: { fontSize: 8, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
+  infoTitle: { fontSize: 12, fontFamily: "Helvetica-Bold", color: "#1e293b", marginBottom: 2 },
+  infoText: { fontSize: 9, color: "#475569", lineHeight: 1.5 },
+  metaRow: { ...shared.row, marginBottom: 20, gap: 30 },
+  metaItem: {},
+  metaLabel: { fontSize: 8, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 },
+  metaValue: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#1e293b" },
+  tableHeader: { ...shared.row, backgroundColor: "#5E5CE6", borderRadius: 4, padding: 8, marginBottom: 2 },
+  tableHeaderText: { color: "#FFFFFF", fontSize: 8, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.5 },
+  tableRow: { ...shared.row, padding: 8, borderBottomWidth: 1, borderBottomColor: "#f1f5f9" },
+  tableRowAlt: { ...shared.row, padding: 8, backgroundColor: "#f8fafc", borderBottomWidth: 1, borderBottomColor: "#f1f5f9" },
+  cellDesc: { flex: 5 },
+  cellQty: { flex: 1.5, textAlign: "center" },
+  cellPrice: { flex: 2, textAlign: "right" },
+  cellTotal: { flex: 2, textAlign: "right", fontFamily: "Helvetica-Bold" },
+  cellText: { fontSize: 9, color: "#334155" },
+  totalsSection: { marginTop: 15, alignItems: "flex-end" },
+  totalsBox: { width: 220, padding: 15, backgroundColor: "#f8fafc", borderRadius: 6 },
+  totalRow: { ...shared.spaceBetween, marginBottom: 6 },
+  totalLabel: { fontSize: 9, color: "#64748b" },
+  totalValue: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#1e293b" },
+  totalRowFinal: { ...shared.spaceBetween, borderTopWidth: 2, borderTopColor: "#5E5CE6", paddingTop: 8, marginTop: 4 },
+  totalFinalLabel: { fontSize: 12, fontFamily: "Helvetica-Bold", color: "#5E5CE6" },
+  totalFinalValue: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#5E5CE6" },
+  notes: { marginTop: 25, padding: 12, backgroundColor: "#f8fafc", borderRadius: 4, borderLeftWidth: 3, borderLeftColor: "#5E5CE6" },
+  notesLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#5E5CE6", marginBottom: 4, textTransform: "uppercase" },
+  notesText: { fontSize: 9, color: "#475569", lineHeight: 1.5 },
+  footer: { position: "absolute", bottom: 30, left: 40, right: 40, textAlign: "center" },
+  footerText: { fontSize: 7, color: "#94a3b8" },
+  footerLine: { height: 1, backgroundColor: "#e2e8f0", marginBottom: 8 },
+  badge: { backgroundColor: "#5E5CE6", color: "#FFFFFF", fontSize: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, fontFamily: "Helvetica-Bold" },
+});
+
+export const classicStyles = StyleSheet.create({
+  page: { ...shared.page, backgroundColor: "#FFFFFF" },
+  header: { ...shared.spaceBetween, marginBottom: 20, paddingBottom: 15, borderBottomWidth: 2, borderBottomColor: "#1e293b" },
+  logo: { fontSize: 22, fontFamily: "Helvetica-Bold", color: "#1e293b" },
+  docType: { fontSize: 10, color: "#1e293b", fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 1 },
+  docNumber: { fontSize: 16, fontFamily: "Helvetica-Bold", color: "#1e293b" },
+  accentBar: { display: "none" },
+  infoSection: { ...shared.spaceBetween, marginBottom: 25 },
+  infoBlock: { width: "48%", padding: 12, borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 2 },
+  infoLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#1e293b", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: "#e2e8f0", paddingBottom: 4 },
+  infoTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#1e293b", marginBottom: 2 },
+  infoText: { fontSize: 9, color: "#475569", lineHeight: 1.5 },
+  metaRow: { ...shared.row, marginBottom: 20, gap: 20 },
+  metaItem: { padding: 8, backgroundColor: "#f8fafc", borderWidth: 1, borderColor: "#e2e8f0" },
+  metaLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#64748b", textTransform: "uppercase", marginBottom: 2 },
+  metaValue: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#1e293b" },
+  tableHeader: { ...shared.row, backgroundColor: "#1e293b", padding: 8, marginBottom: 0 },
+  tableHeaderText: { color: "#FFFFFF", fontSize: 8, fontFamily: "Helvetica-Bold", textTransform: "uppercase" },
+  tableRow: { ...shared.row, padding: 8, borderBottomWidth: 1, borderBottomColor: "#e2e8f0" },
+  tableRowAlt: { ...shared.row, padding: 8, backgroundColor: "#f8fafc", borderBottomWidth: 1, borderBottomColor: "#e2e8f0" },
+  cellDesc: { flex: 5 },
+  cellQty: { flex: 1.5, textAlign: "center" },
+  cellPrice: { flex: 2, textAlign: "right" },
+  cellTotal: { flex: 2, textAlign: "right", fontFamily: "Helvetica-Bold" },
+  cellText: { fontSize: 9, color: "#334155" },
+  totalsSection: { marginTop: 15, alignItems: "flex-end" },
+  totalsBox: { width: 220, borderWidth: 1, borderColor: "#1e293b", padding: 12 },
+  totalRow: { ...shared.spaceBetween, marginBottom: 5 },
+  totalLabel: { fontSize: 9, color: "#64748b" },
+  totalValue: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#1e293b" },
+  totalRowFinal: { ...shared.spaceBetween, borderTopWidth: 2, borderTopColor: "#1e293b", paddingTop: 8, marginTop: 4 },
+  totalFinalLabel: { fontSize: 12, fontFamily: "Helvetica-Bold", color: "#1e293b" },
+  totalFinalValue: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#1e293b" },
+  notes: { marginTop: 25, padding: 10, borderWidth: 1, borderColor: "#e2e8f0" },
+  notesLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#1e293b", marginBottom: 4, textTransform: "uppercase" },
+  notesText: { fontSize: 9, color: "#475569", lineHeight: 1.5 },
+  footer: { position: "absolute", bottom: 30, left: 40, right: 40, textAlign: "center" },
+  footerText: { fontSize: 7, color: "#94a3b8" },
+  footerLine: { height: 1, backgroundColor: "#1e293b", marginBottom: 8 },
+  badge: { borderWidth: 1, borderColor: "#1e293b", color: "#1e293b", fontSize: 8, paddingHorizontal: 8, paddingVertical: 3, fontFamily: "Helvetica-Bold" },
+});
+
+export const minimalStyles = StyleSheet.create({
+  page: { ...shared.page, backgroundColor: "#FFFFFF", padding: 50 },
+  header: { ...shared.spaceBetween, marginBottom: 40 },
+  logo: { fontSize: 20, fontFamily: "Helvetica-Bold", color: "#0f172a" },
+  docType: { fontSize: 9, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 3 },
+  docNumber: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#0f172a", marginTop: 2 },
+  accentBar: { height: 1, backgroundColor: "#e2e8f0", marginBottom: 30 },
+  infoSection: { ...shared.spaceBetween, marginBottom: 30 },
+  infoBlock: { width: "45%" },
+  infoLabel: { fontSize: 7, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 },
+  infoTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#0f172a", marginBottom: 2 },
+  infoText: { fontSize: 9, color: "#64748b", lineHeight: 1.6 },
+  metaRow: { ...shared.row, marginBottom: 25, gap: 40 },
+  metaItem: {},
+  metaLabel: { fontSize: 7, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 3 },
+  metaValue: { fontSize: 10, color: "#0f172a" },
+  tableHeader: { ...shared.row, borderBottomWidth: 2, borderBottomColor: "#0f172a", paddingBottom: 8, marginBottom: 4 },
+  tableHeaderText: { color: "#94a3b8", fontSize: 7, textTransform: "uppercase", letterSpacing: 1.5 },
+  tableRow: { ...shared.row, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#f1f5f9" },
+  tableRowAlt: { ...shared.row, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#f1f5f9" },
+  cellDesc: { flex: 5 },
+  cellQty: { flex: 1.5, textAlign: "center" },
+  cellPrice: { flex: 2, textAlign: "right" },
+  cellTotal: { flex: 2, textAlign: "right" },
+  cellText: { fontSize: 9, color: "#334155" },
+  totalsSection: { marginTop: 20, alignItems: "flex-end" },
+  totalsBox: { width: 200 },
+  totalRow: { ...shared.spaceBetween, marginBottom: 6 },
+  totalLabel: { fontSize: 9, color: "#94a3b8" },
+  totalValue: { fontSize: 9, color: "#0f172a" },
+  totalRowFinal: { ...shared.spaceBetween, borderTopWidth: 2, borderTopColor: "#0f172a", paddingTop: 10, marginTop: 6 },
+  totalFinalLabel: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#0f172a" },
+  totalFinalValue: { fontSize: 13, fontFamily: "Helvetica-Bold", color: "#0f172a" },
+  notes: { marginTop: 30, paddingTop: 15, borderTopWidth: 1, borderTopColor: "#e2e8f0" },
+  notesLabel: { fontSize: 7, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 5 },
+  notesText: { fontSize: 9, color: "#64748b", lineHeight: 1.6 },
+  footer: { position: "absolute", bottom: 40, left: 50, right: 50, textAlign: "center" },
+  footerText: { fontSize: 7, color: "#cbd5e1" },
+  footerLine: { height: 0.5, backgroundColor: "#e2e8f0", marginBottom: 10 },
+  badge: { color: "#64748b", fontSize: 8, paddingHorizontal: 6, paddingVertical: 2, fontFamily: "Helvetica-Bold" },
+});
+
+export const templateMap = {
+  moderne: modernStyles,
+  classique: classicStyles,
+  minimaliste: minimalStyles,
+};
+
+export function buildDynamicStyles(template, brandColor) {
+  const base = templateMap[template] || modernStyles;
+  if (!brandColor || brandColor === "#5E5CE6") return base;
+
+  const overrides = {};
+  const colorProps = {
+    moderne: {
+      logo: { color: brandColor },
+      docType: { color: brandColor },
+      accentBar: { backgroundColor: brandColor },
+      tableHeader: { backgroundColor: brandColor },
+      totalRowFinal: { borderTopColor: brandColor },
+      totalFinalLabel: { color: brandColor },
+      totalFinalValue: { color: brandColor },
+      notes: { borderLeftColor: brandColor },
+      notesLabel: { color: brandColor },
+      badge: { backgroundColor: brandColor },
+    },
+    classique: {
+      tableHeader: { backgroundColor: brandColor },
+      totalRowFinal: { borderTopColor: brandColor },
+      header: { borderBottomColor: brandColor },
+      footerLine: { backgroundColor: brandColor },
+    },
+    minimaliste: {},
+  };
+
+  const patches = colorProps[template] || {};
+  const result = {};
+  for (const key of Object.keys(base)) {
+    result[key] = patches[key] ? { ...base[key], ...patches[key] } : base[key];
+  }
+  return result;
+}
