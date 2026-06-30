@@ -1,13 +1,28 @@
 import { NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 function getPeriodEnd(billingCycle) {
-  const now = new Date();
-  const end = new Date(now);
+  const end = new Date();
   if (billingCycle === "annual") end.setFullYear(end.getFullYear() + 1);
   else if (billingCycle === "quarterly") end.setMonth(end.getMonth() + 3);
   else end.setMonth(end.getMonth() + 1);
   return end.toISOString();
+}
+
+// PayTech IPN verification: compare sha256 hashes of API keys
+function verifyPayTechIPN(body) {
+  const { api_key_sha256, api_secret_sha256 } = body;
+  if (!api_key_sha256 || !api_secret_sha256) return false;
+
+  const expectedKey = createHash("sha256")
+    .update(process.env.PAYTECH_API_KEY || "")
+    .digest("hex");
+  const expectedSecret = createHash("sha256")
+    .update(process.env.PAYTECH_API_SECRET || "")
+    .digest("hex");
+
+  return api_key_sha256 === expectedKey && api_secret_sha256 === expectedSecret;
 }
 
 export async function POST(request) {
@@ -18,31 +33,22 @@ export async function POST(request) {
     if (contentType.includes("application/json")) {
       body = await request.json();
     } else {
-      // PayTech sends form-encoded data
       const text = await request.text();
       const params = new URLSearchParams(text);
       body = Object.fromEntries(params.entries());
     }
 
-    const { type_event, token, ref_command, custom_field } = body;
+    // Verify the IPN comes from PayTech
+    if (!verifyPayTechIPN(body)) {
+      console.warn("PayTech IPN: invalid signature", { received: body.api_key_sha256 });
+      return NextResponse.json({ error: "IPN KO - NOT FROM PAYTECH" }, { status: 403 });
+    }
+
+    const { type_event, ref_command, custom_field, item_price, payment_method } = body;
 
     // Only process completed sales
     if (type_event !== "sale_complete") {
-      return NextResponse.json({ received: true });
-    }
-
-    // Verify payment with PayTech
-    const verifyRes = await fetch(`https://paytech.sn/api/payment/verify/${token}`, {
-      headers: {
-        API_KEY: process.env.PAYTECH_API_KEY || "",
-        API_SECRET: process.env.PAYTECH_API_SECRET || "",
-      },
-    });
-    const verifyData = await verifyRes.json();
-
-    if (!verifyData.success || verifyData.payment?.status !== "Completed") {
-      console.warn("PayTech IPN: payment not completed", verifyData);
-      return NextResponse.json({ error: "Payment not completed" }, { status: 400 });
+      return new Response("IPN OK", { status: 200 });
     }
 
     // Parse custom_field
@@ -50,10 +56,10 @@ export async function POST(request) {
     try {
       meta = JSON.parse(custom_field || "{}");
     } catch {
-      // Try to parse command_name: gestio_sub_{orgId}_{planId}_{cycle}_{ts}
+      // Fallback: parse ref_command: GESTIO_{orgId}_{planId}_{cycle}_{ts}
       const parts = (ref_command || "").split("_");
-      if (parts.length >= 6) {
-        meta = { organizationId: parts[2], planId: parts[3], billingCycle: parts[4] };
+      if (parts.length >= 4) {
+        meta = { organizationId: parts[1], planId: parts[2], billingCycle: parts[3] };
       }
     }
 
@@ -66,14 +72,14 @@ export async function POST(request) {
     const supabase = createAdminClient();
     const now = new Date().toISOString();
     const periodEnd = getPeriodEnd(billingCycle);
-    const amount = verifyData.payment?.amount || 0;
+    const amount = parseInt(item_price || "0", 10);
 
-    // Update subscription to active
+    // Update or create subscription as active
     const { data: existingSub } = await supabase
       .from("subscriptions")
       .select("id")
       .eq("organization_id", organizationId)
-      .single();
+      .maybeSingle();
 
     if (existingSub) {
       await supabase.from("subscriptions").update({
@@ -81,7 +87,6 @@ export async function POST(request) {
         billing_cycle: billingCycle,
         status: "active",
         amount,
-        paytech_token: token,
         paytech_ref: ref_command,
         current_period_start: now,
         current_period_end: periodEnd,
@@ -94,45 +99,41 @@ export async function POST(request) {
         billing_cycle: billingCycle,
         status: "active",
         amount,
-        paytech_token: token,
         paytech_ref: ref_command,
         current_period_start: now,
         current_period_end: periodEnd,
       });
     }
 
-    // Update payment record to completed
+    // Update pending payment to completed
     const { data: pendingPay } = await supabase
       .from("subscription_payments")
       .select("id")
-      .eq("paytech_token", token)
+      .eq("paytech_ref", ref_command)
       .eq("status", "pending")
       .maybeSingle();
 
     if (pendingPay) {
       await supabase.from("subscription_payments").update({
         status: "completed",
-        paytech_ref: ref_command,
-        payment_method: verifyData.payment?.payment_method || null,
+        payment_method: payment_method || null,
         paid_at: now,
       }).eq("id", pendingPay.id);
     } else {
-      // Insert new if not found
       await supabase.from("subscription_payments").insert({
         organization_id: organizationId,
         plan_id: planId,
         billing_cycle: billingCycle,
         amount,
         status: "completed",
-        paytech_token: token,
         paytech_ref: ref_command,
-        payment_method: verifyData.payment?.payment_method || null,
+        payment_method: payment_method || null,
         paid_at: now,
         subscription_id: existingSub?.id || null,
       });
     }
 
-    return NextResponse.json({ success: true });
+    return new Response("IPN OK", { status: 200 });
   } catch (error) {
     console.error("PayTech webhook error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

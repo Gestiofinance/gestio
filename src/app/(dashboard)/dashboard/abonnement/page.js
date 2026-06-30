@@ -81,25 +81,37 @@ function AbonnementContent() {
   }
 
   async function handleSubscribe(planId) {
+    if (!organization?.id) {
+      setToast({ type: "error", msg: "Aucune organisation trouvée. Veuillez vous reconnecter." });
+      return;
+    }
     setPaying(planId);
     try {
+      const billingCycle = planId === "business"
+        ? (cycle === "annual" ? "annual" : "quarterly")
+        : cycle;
+
       const res = await fetch("/api/paytech/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           planId,
-          billingCycle: planId === "business" ? (cycle === "annual" ? "annual" : "quarterly") : cycle,
+          billingCycle,
           organizationId: organization.id,
-          organizationName: organization.name,
+          organizationName: organization.name || "Gestio",
         }),
       });
+
       const data = await res.json();
+
       if (data.redirect_url) {
         window.location.href = data.redirect_url;
-      } else {
-        setToast({ type: "error", msg: data.error || "Erreur lors de l'initiation du paiement." });
+        return; // Don't setPaying(null) — page will redirect
       }
+
+      setToast({ type: "error", msg: data.error || "Erreur lors de l'initiation du paiement." });
     } catch (e) {
+      console.error("Subscribe error:", e);
       setToast({ type: "error", msg: "Erreur réseau. Veuillez réessayer." });
     }
     setPaying(null);

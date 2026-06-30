@@ -18,9 +18,27 @@ export async function POST(request) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const commandName = `gestio_sub_${organizationId}_${planId}_${billingCycle}_${Date.now()}`;
+    const env = process.env.PAYTECH_ENV || "test";
 
-    // Call PayTech API
+    // ref_command = unique reference per PayTech docs (required)
+    const refCommand = `GESTIO_${organizationId}_${planId}_${Date.now()}`;
+    const commandName = `Gestio ${getPlanLabel(planId)} — ${
+      billingCycle === "monthly" ? "Mensuel" : billingCycle === "annual" ? "Annuel" : "Trimestriel"
+    }`;
+
+    const paytechBody = {
+      item_name: commandName,
+      item_price: amount,
+      currency: "XOF",
+      ref_command: refCommand,
+      command_name: commandName,
+      env,
+      success_url: `${appUrl}/dashboard/abonnement?success=1`,
+      cancel_url: `${appUrl}/dashboard/abonnement?cancelled=1`,
+      ipn_url: `${appUrl}/api/paytech/webhook`,
+      custom_field: JSON.stringify({ organizationId, planId, billingCycle, refCommand }),
+    };
+
     const paytechRes = await fetch(PAYTECH_API_URL, {
       method: "POST",
       headers: {
@@ -28,36 +46,27 @@ export async function POST(request) {
         API_KEY: process.env.PAYTECH_API_KEY || "",
         API_SECRET: process.env.PAYTECH_API_SECRET || "",
       },
-      body: JSON.stringify({
-        item_name: `Gestio ${getPlanLabel(planId)} — ${billingCycle === "monthly" ? "Mensuel" : billingCycle === "annual" ? "Annuel" : "Trimestriel"}`,
-        item_price: amount,
-        currency: "XOF",
-        command_name: commandName,
-        redirect_url: `${appUrl}/dashboard/abonnement?success=1`,
-        cancel_url: `${appUrl}/dashboard/abonnement?cancelled=1`,
-        ipn_url: `${appUrl}/api/paytech/webhook`,
-        custom_field: JSON.stringify({ organizationId, planId, billingCycle }),
-      }),
+      body: JSON.stringify(paytechBody),
     });
 
     const paytechData = await paytechRes.json();
 
-    if (!paytechData.success || !paytechData.token) {
+    if (paytechData.success !== 1 || !paytechData.token) {
       console.error("PayTech error:", paytechData);
       return NextResponse.json(
-        { error: "Erreur PayTech: " + (paytechData.error || "Réponse invalide") },
+        { error: "Erreur PayTech: " + (paytechData.message || paytechData.error || "Réponse invalide") },
         { status: 502 }
       );
     }
 
-    // Create or update subscription as pending
+    // Upsert subscription as pending
     const supabase = createAdminClient();
 
     const { data: existingSub } = await supabase
       .from("subscriptions")
-      .select("id")
+      .select("id, status")
       .eq("organization_id", organizationId)
-      .single();
+      .maybeSingle();
 
     const subPayload = {
       organization_id: organizationId,
@@ -66,6 +75,7 @@ export async function POST(request) {
       status: existingSub?.status === "active" ? "active" : "trial",
       amount,
       paytech_token: paytechData.token,
+      paytech_ref: refCommand,
     };
 
     if (existingSub) {
@@ -82,10 +92,13 @@ export async function POST(request) {
       amount,
       status: "pending",
       paytech_token: paytechData.token,
+      paytech_ref: refCommand,
       subscription_id: existingSub?.id || null,
     });
 
-    return NextResponse.json({ redirect_url: paytechData.redirect_url });
+    return NextResponse.json({
+      redirect_url: paytechData.redirect_url || paytechData.redirectUrl,
+    });
   } catch (error) {
     console.error("PayTech initiate error:", error);
     return NextResponse.json({ error: "Erreur serveur interne" }, { status: 500 });
