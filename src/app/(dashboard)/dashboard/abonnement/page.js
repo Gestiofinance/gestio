@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { useAuth } from "@/hooks/useAuth";
-import { useSupabase } from "@/hooks/useSupabase";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { PLANS } from "@/lib/plans";
 import {
@@ -45,7 +44,6 @@ const planIconColors = {
 function AbonnementContent() {
   const searchParams = useSearchParams();
   const { organization, profile } = useAuth();
-  const supabase = useSupabase();
 
   const [subscription, setSubscription] = useState(null);
   const [payments, setPayments] = useState([]);
@@ -53,12 +51,24 @@ function AbonnementContent() {
   const [cycle, setCycle] = useState("monthly");
   const [paying, setPaying] = useState(null);
   const [toast, setToast] = useState(null);
-
-  // DB prices, keyed by plan → cycle
   const [dbPrices, setDbPrices] = useState({});
+  const [resolvedOrgId, setResolvedOrgId] = useState(null);
+  const [resolvedOrgName, setResolvedOrgName] = useState("Mon entreprise");
 
-  const orgId = organization?.id || profile?.organization_id;
-  const orgName = organization?.name || profile?.full_name || "Mon entreprise";
+  // Load subscription data via server API (bypasses RLS — works even if orgId is null client-side)
+  useEffect(() => {
+    fetch("/api/subscription/data")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) { setLoading(false); return; }
+        setSubscription(data.subscription);
+        setPayments(data.payments || []);
+        if (data.orgId) setResolvedOrgId(data.orgId);
+        if (data.orgName) setResolvedOrgName(data.orgName);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   // Load prices from DB
   useEffect(() => {
@@ -69,25 +79,23 @@ function AbonnementContent() {
   }, []);
 
   useEffect(() => {
-    if (orgId) loadData();
-  }, [orgId]);
-
-  useEffect(() => {
     const success = searchParams.get("success");
     const cancelled = searchParams.get("cancelled");
-    if (success) setToast({ type: "success", msg: "Paiement reçu ! Votre abonnement est en cours d'activation." });
+    if (success) {
+      setToast({ type: "success", msg: "Paiement reçu ! Votre abonnement est en cours d'activation." });
+      // Reload data after payment success
+      setTimeout(() => {
+        fetch("/api/subscription/data").then(r => r.json()).then(data => {
+          if (!data.error) { setSubscription(data.subscription); setPayments(data.payments || []); }
+        });
+      }, 2000);
+    }
     if (cancelled) setToast({ type: "warn", msg: "Paiement annulé. Vous pouvez réessayer à tout moment." });
   }, [searchParams]);
 
-  async function loadData() {
-    const [{ data: sub }, { data: pays }] = await Promise.all([
-      supabase.from("subscriptions").select("*").eq("organization_id", orgId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("subscription_payments").select("*").eq("organization_id", orgId).order("created_at", { ascending: false }),
-    ]);
-    setSubscription(sub);
-    setPayments(pays || []);
-    setLoading(false);
-  }
+  // Use server-resolved orgId, or fallback to client-side
+  const orgId = resolvedOrgId || organization?.id || profile?.organization_id;
+  const orgName = resolvedOrgName || organization?.name || profile?.full_name || "Mon entreprise";
 
   // Get price from DB, fallback to 0
   function getPrice(planId, billingCycle) {
@@ -351,7 +359,7 @@ function AbonnementContent() {
                           {p.paid_at ? formatShortDate(p.paid_at) : formatShortDate(p.created_at)}
                         </td>
                         <td className="px-3 py-2">
-                          {p.status === "completed" && (
+                          {(p.status === "completed" || p.status === "pending") && (
                             <ReceiptDownloadButton payment={p} organizationName={orgName} />
                           )}
                         </td>
