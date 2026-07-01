@@ -16,7 +16,19 @@ export async function getOrgId(supabase) {
     .select("organization_id")
     .eq("id", user.id)
     .single();
-  return data?.organization_id;
+
+  if (data?.organization_id) return data.organization_id;
+
+  // Fallback: resolve via server API (bypasses RLS when organization_id is null in profile)
+  try {
+    const res = await fetch("/api/subscription/data");
+    if (res.ok) {
+      const { orgId } = await res.json();
+      if (orgId) return orgId;
+    }
+  } catch (_) {}
+
+  return null;
 }
 
 export function useCrud(table) {
