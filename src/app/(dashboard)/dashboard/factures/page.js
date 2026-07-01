@@ -134,26 +134,24 @@ export default function FacturesPage() {
     setSaving(true);
     const totals = calcTotals(lines);
     try {
-      let invoiceId;
       const payload = { ...form, client_id: form.client_id || null, discount_value: parseFloat(form.discount_value) || 0, ...totals };
+      const validLines = lines.filter((l) => l.description);
+
+      let res;
       if (editing) {
-        await supabase.from("invoices").update(payload).eq("id", editing.id);
-        await supabase.from("invoice_items").delete().eq("invoice_id", editing.id);
-        invoiceId = editing.id;
+        res = await fetch("/api/invoices", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editing.id, ...payload, lines: validLines }),
+        });
       } else {
-        const { data: org } = await supabase.from("organizations").select("invoice_prefix, invoice_next_seq").single();
-        const number = `${org.invoice_prefix}-${new Date().getFullYear()}-${String(org.invoice_next_seq).padStart(4, "0")}`;
-        const orgId = await getOrgId(supabase);
-        const { data: inv } = await supabase.from("invoices").insert({ ...payload, invoice_number: number, organization_id: orgId }).select().single();
-        await supabase.from("organizations").update({ invoice_next_seq: org.invoice_next_seq + 1 }).eq("id", org.id);
-        invoiceId = inv.id;
+        res = await fetch("/api/invoices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, lines: validLines }),
+        });
       }
-      const itemsToInsert = lines.filter((l) => l.description).map((l, i) => ({
-        invoice_id: invoiceId, description: l.description, quantity: l.quantity,
-        unit_price: l.unit_price, tax_rate: l.tax_rate,
-        total: l.quantity * l.unit_price * (1 + l.tax_rate / 100), sort_order: i,
-      }));
-      if (itemsToInsert.length) await supabase.from("invoice_items").insert(itemsToInsert);
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       await fetchAll({ select: "*, clients(company_name, contact_name, email, phone)" });
       setShowForm(false);
     } catch (e) { console.error(e); }
@@ -165,14 +163,20 @@ export default function FacturesPage() {
     setSaving(true);
     const amount = parseFloat(paymentForm.amount);
     try {
-      const orgId = await getOrgId(supabase);
-      await supabase.from("payments").insert({
-        organization_id: orgId, invoice_id: showPayment.id, amount, payment_date: paymentForm.payment_date,
-        payment_method: paymentForm.payment_method, reference: paymentForm.reference,
+      const res = await fetch("/api/invoices", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceId: showPayment.id,
+          amount,
+          payment_date: paymentForm.payment_date,
+          payment_method: paymentForm.payment_method,
+          reference: paymentForm.reference,
+          currentTotal: showPayment.total,
+          currentPaid: showPayment.paid_amount || 0,
+        }),
       });
-      const newPaid = Number(showPayment.paid_amount) + amount;
-      const newStatus = newPaid >= Number(showPayment.total) ? "payee" : "partiellement_payee";
-      await supabase.from("invoices").update({ paid_amount: newPaid, status: newStatus }).eq("id", showPayment.id);
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       await fetchAll({ select: "*, clients(company_name, contact_name, email, phone)" });
       setShowPayment(null);
       setPaymentForm({ amount: "", payment_date: new Date().toISOString().split("T")[0], payment_method: "virement", reference: "" });

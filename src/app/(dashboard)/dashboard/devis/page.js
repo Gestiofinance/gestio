@@ -100,26 +100,24 @@ export default function DevisPage() {
     setSaving(true);
     const totals = calcTotals(lines);
     try {
-      let quoteId;
       const payload = { ...form, client_id: form.client_id || null, discount_value: parseFloat(form.discount_value) || 0, ...totals };
+      const validLines = lines.filter((l) => l.description);
+
+      let res;
       if (editing) {
-        await supabase.from("quotes").update(payload).eq("id", editing.id);
-        await supabase.from("quote_items").delete().eq("quote_id", editing.id);
-        quoteId = editing.id;
+        res = await fetch("/api/quotes", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editing.id, ...payload, lines: validLines }),
+        });
       } else {
-        const { data: org } = await supabase.from("organizations").select("quote_prefix, quote_next_seq").single();
-        const number = `${org.quote_prefix}-${new Date().getFullYear()}-${String(org.quote_next_seq).padStart(4, "0")}`;
-        const orgId = await getOrgId(supabase);
-        const { data: q } = await supabase.from("quotes").insert({ ...payload, quote_number: number, organization_id: orgId }).select().single();
-        await supabase.from("organizations").update({ quote_next_seq: org.quote_next_seq + 1 }).eq("id", org.id);
-        quoteId = q.id;
+        res = await fetch("/api/quotes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, lines: validLines }),
+        });
       }
-      const itemsToInsert = lines.filter((l) => l.description).map((l, i) => ({
-        quote_id: quoteId, description: l.description, quantity: l.quantity,
-        unit_price: l.unit_price, tax_rate: l.tax_rate,
-        total: l.quantity * l.unit_price * (1 + l.tax_rate / 100), sort_order: i,
-      }));
-      if (itemsToInsert.length) await supabase.from("quote_items").insert(itemsToInsert);
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       await fetchAll({ select: "*, clients(company_name, contact_name, email, phone)" });
       setShowForm(false);
     } catch (e) { console.error(e); }
@@ -128,24 +126,28 @@ export default function DevisPage() {
 
   async function convertToInvoice(quote) {
     const { data: items } = await supabase.from("quote_items").select("*").eq("quote_id", quote.id);
-    const { data: org } = await supabase.from("organizations").select("invoice_prefix, invoice_next_seq").single();
-    const number = `${org.invoice_prefix}-${new Date().getFullYear()}-${String(org.invoice_next_seq).padStart(4, "0")}`;
-    const orgId = await getOrgId(supabase);
-    const { data: inv } = await supabase.from("invoices").insert({
-      organization_id: orgId, client_id: quote.client_id, quote_id: quote.id, invoice_number: number,
-      status: "brouillon", issue_date: new Date().toISOString().split("T")[0],
-      due_date: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
-      subtotal: quote.subtotal, tax_rate: quote.tax_rate, tax_amount: quote.tax_amount,
-      total: quote.total, notes: quote.notes, conditions: quote.conditions,
-    }).select().single();
-    if (items?.length) {
-      await supabase.from("invoice_items").insert(items.map((it, i) => ({
-        invoice_id: inv.id, description: it.description, quantity: it.quantity,
-        unit_price: it.unit_price, tax_rate: it.tax_rate, total: it.total, sort_order: i,
-      })));
-    }
-    await supabase.from("quotes").update({ converted_to_invoice: true, status: "accepte" }).eq("id", quote.id);
-    await supabase.from("organizations").update({ invoice_next_seq: org.invoice_next_seq + 1 }).eq("id", org.id);
+    const res = await fetch("/api/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        quoteId: quote.id,
+        quoteItems: items || [],
+        client_id: quote.client_id,
+        status: "brouillon",
+        type: "standard",
+        issue_date: new Date().toISOString().split("T")[0],
+        due_date: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
+        subtotal: quote.subtotal,
+        tax_amount: quote.tax_amount,
+        total: quote.total,
+        discount_amount: quote.discount_amount || 0,
+        discount_type: quote.discount_type || "amount",
+        discount_value: quote.discount_value || 0,
+        notes: quote.notes,
+        conditions: quote.conditions,
+      }),
+    });
+    if (!res.ok) { const d = await res.json(); console.error(d.error); return; }
     await fetchAll({ select: "*, clients(company_name, contact_name, email, phone)" });
     setShowDetail(null);
     router.push("/dashboard/factures");
