@@ -73,6 +73,7 @@ function StickyCard({ task, userName, onEdit, onDelete, onToggle }) {
   const p = PALETTE[cardColor(task)];
   const [menu, setMenu] = useState(false);
   const ref = useRef(null);
+  const isDone = task.status === "termine";
 
   useEffect(() => {
     if (!menu) return;
@@ -82,29 +83,29 @@ function StickyCard({ task, userName, onEdit, onDelete, onToggle }) {
   }, [menu]);
 
   return (
-    <div className="relative pt-3">
-      {/* Épingle colorée */}
+    <div className="relative pt-4">
+      {/* Épingle ronde — plus grande et proéminente */}
       <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full z-10 shadow-md border-2 border-white"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full z-10 shadow-lg border-[3px] border-white"
         style={{ backgroundColor: p.pin }}
       />
 
-      {/* Note */}
+      {/* Note principale */}
       <div
-        className="relative rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group overflow-hidden min-h-[180px] flex flex-col"
+        className="relative rounded-2xl px-5 pt-5 pb-5 shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer group overflow-hidden min-h-[210px] flex flex-col"
         style={{ backgroundColor: p.bg }}
         onClick={() => onEdit(task)}
       >
-        {/* Menu 3 points */}
-        <div ref={ref} className="absolute top-2.5 right-2.5" onClick={e => e.stopPropagation()}>
+        {/* Menu ··· */}
+        <div ref={ref} className="absolute top-3 right-3" onClick={e => e.stopPropagation()}>
           <button
-            className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-black/10 transition-all"
+            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-black/10 transition-all"
             onClick={() => setMenu(v => !v)}
           >
-            <MoreVertical className="w-3.5 h-3.5 text-slate-500" />
+            <MoreVertical className="w-4 h-4 text-slate-400" />
           </button>
           {menu && (
-            <div className="absolute right-0 top-7 bg-white rounded-xl shadow-lg border border-slate-100 py-1 w-36 z-50">
+            <div className="absolute right-0 top-8 bg-white rounded-xl shadow-xl border border-slate-100 py-1 w-36 z-50">
               <button className="flex items-center gap-2 w-full px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
                 onClick={() => { onEdit(task); setMenu(false); }}>
                 <Pencil className="w-3.5 h-3.5" /> Modifier
@@ -112,7 +113,7 @@ function StickyCard({ task, userName, onEdit, onDelete, onToggle }) {
               <button className="flex items-center gap-2 w-full px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
                 onClick={() => { onToggle(task); setMenu(false); }}>
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                {task.status === "termine" ? "Rouvrir" : "Terminer"}
+                {isDone ? "Rouvrir" : "Terminer"}
               </button>
               <button className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50"
                 onClick={() => { onDelete(task); setMenu(false); }}>
@@ -122,14 +123,35 @@ function StickyCard({ task, userName, onEdit, onDelete, onToggle }) {
           )}
         </div>
 
-        {/* Titre */}
-        <h3 className="font-bold text-slate-800 text-sm pr-5 leading-snug mt-0.5">
-          {task.title}
-        </h3>
+        {/* Checkbox + Titre */}
+        <div className="flex items-start gap-3 pr-7" onClick={e => e.stopPropagation()}>
+          <button
+            onClick={() => onToggle(task)}
+            className="flex-shrink-0 mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-all hover:scale-110"
+            style={{
+              borderColor: p.pin,
+              backgroundColor: isDone ? p.pin : "transparent",
+            }}
+            title={isDone ? "Rouvrir" : "Terminer"}
+          >
+            {isDone && (
+              <svg viewBox="0 0 12 10" className="w-3 h-3 fill-white">
+                <polyline points="1,5 4,8 11,1" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </button>
+          <h3
+            className="font-bold text-slate-800 text-sm leading-snug cursor-pointer"
+            style={{ textDecoration: isDone ? "line-through" : "none", opacity: isDone ? 0.55 : 1 }}
+            onClick={() => onEdit(task)}
+          >
+            {task.title}
+          </h3>
+        </div>
 
         {/* Description */}
         {task.description && (
-          <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
+          <p className="text-xs text-slate-500 mt-3 ml-8 line-clamp-3 leading-relaxed">
             {task.description}
           </p>
         )}
@@ -138,43 +160,50 @@ function StickyCard({ task, userName, onEdit, onDelete, onToggle }) {
 
         {/* Projet */}
         {task.projects?.name && (
-          <div className="flex items-center gap-1.5 mt-3">
-            <Folder className="w-3 h-3 text-slate-400 shrink-0" />
-            <span className="text-xs text-slate-500 font-medium truncate">{task.projects.name}</span>
+          <div className="flex items-center gap-2 mt-4">
+            <Folder className="w-3.5 h-3.5 shrink-0" style={{ color: p.pin }} />
+            <span className="text-xs text-slate-600 font-medium truncate">{task.projects.name}</span>
           </div>
         )}
 
         {/* Échéance */}
         {task.due_date && (
-          <div className="flex items-center gap-1.5 mt-1">
-            <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
-            <span className="text-xs text-slate-500">{formatShortDate(task.due_date)}</span>
+          <div className="flex items-center gap-2 mt-2">
+            <Calendar className="w-3.5 h-3.5 shrink-0" style={{ color: p.pin }} />
+            <span className="text-xs text-slate-600">{formatShortDate(task.due_date)}</span>
           </div>
         )}
 
-        {/* Pied : badge statut / priorité + avatar */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {/* Priorité urgente en premier */}
-            {task.priority === "urgente" && (
-              <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${PRIORITY_BADGE.urgente}`}>
-                Urgente
-              </span>
-            )}
-            <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${STATUS_BADGE[task.status]}`}>
-              {STATUS_LABEL[task.status]}
+        {/* Badge statut + priorité */}
+        <div className="flex items-center gap-2 mt-4 flex-wrap">
+          <span className={`text-xs px-3 py-1 rounded-full font-semibold ${STATUS_BADGE[task.status]}`}>
+            {STATUS_LABEL[task.status]}
+          </span>
+          {task.priority === "urgente" && (
+            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${PRIORITY_BADGE.urgente}`}>
+              Urgente
             </span>
-          </div>
-          {/* Avatar */}
-          <div className={`w-7 h-7 rounded-full text-white text-xs flex items-center justify-center font-bold border-2 border-white shadow-sm ${avatarBg(userName)}`}>
-            {initials(userName)}
-          </div>
+          )}
         </div>
 
-        {/* Coin plié bas-droite */}
+        {/* ── Coin plié "papier" bas-droite ── */}
+        {/* Ombre portée sous le pli */}
         <div
-          className="absolute bottom-0 right-0 w-7 h-7"
-          style={{ background: "linear-gradient(225deg, rgba(0,0,0,0.10) 50%, transparent 50%)" }}
+          className="absolute bottom-0 right-0"
+          style={{
+            width: "48px",
+            height: "48px",
+            background: `linear-gradient(225deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.13) 40%, rgba(0,0,0,0.13) 45%, transparent 45%)`,
+          }}
+        />
+        {/* Feuille pliée (blanc cassé) */}
+        <div
+          className="absolute bottom-0 right-0"
+          style={{
+            width: "48px",
+            height: "48px",
+            background: `linear-gradient(225deg, #ffffff 38%, rgba(0,0,0,0.10) 38%, rgba(0,0,0,0.10) 44%, ${p.bg} 44%)`,
+          }}
         />
       </div>
     </div>
