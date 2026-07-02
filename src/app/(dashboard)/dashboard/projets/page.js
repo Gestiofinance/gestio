@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DateFilter, applyDateFilter } from "@/components/ui/date-filter";
 import { useCrud } from "@/hooks/useSupabase";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { StatCard } from "@/components/ui/stat-card";
@@ -53,6 +54,9 @@ export default function ProjetsPage() {
   const [saving, setSaving] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterPeriod, setFilterPeriod] = useState("");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [showDetail, setShowDetail] = useState(null);
 
   useEffect(() => {
@@ -60,10 +64,13 @@ export default function ProjetsPage() {
     fetchClients();
   }, [fetchAll, fetchClients]);
 
-  const filtered = projects.filter((p) => {
-    if (filterStatus && p.status !== filterStatus) return false;
-    return p.name.toLowerCase().includes(search.toLowerCase());
-  });
+  const filtered = applyDateFilter(
+    projects.filter((p) => {
+      if (filterStatus && p.status !== filterStatus) return false;
+      return p.name.toLowerCase().includes(search.toLowerCase());
+    }),
+    "start_date", filterPeriod, customStart, customEnd
+  );
 
   function openCreate() { setForm(emptyForm); setEditing(null); setShowForm(true); }
   function openEdit(p) {
@@ -143,7 +150,7 @@ export default function ProjetsPage() {
               <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm w-full border-none outline-none" />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
                 <option value="">Statut</option>
                 <option value="a_demarrer">À démarrer</option>
@@ -152,6 +159,7 @@ export default function ProjetsPage() {
                 <option value="termine">Terminé</option>
                 <option value="annule">Annulé</option>
               </select>
+              <DateFilter period={filterPeriod} setPeriod={setFilterPeriod} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} />
               <Button onClick={openCreate} className="flex-shrink-0"><Plus className="w-4 h-4" /> Nouveau projet</Button>
             </div>
           </div>

@@ -16,6 +16,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { useCrud, useSupabase, getOrgId } from "@/hooks/useSupabase";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { PdfDownloadButton } from "@/components/ui/pdf-download-button";
+import { DateFilter, applyDateFilter } from "@/components/ui/date-filter";
 import { ActionMenu, ActionMenuItem } from "@/components/ui/action-menu";
 import {
   Receipt, Plus, Search, Trash2, Pencil, Eye, Wallet, AlertCircle, CheckCircle, Clock, MessageCircle, Mail, Stamp, Printer,
@@ -59,6 +60,9 @@ export default function FacturesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterPeriod, setFilterPeriod] = useState("");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [statusModal, setStatusModal] = useState(null); // invoice being changed
   const [detailItems, setDetailItems] = useState([]);
   const [detailPayments, setDetailPayments] = useState([]);
@@ -78,11 +82,14 @@ export default function FacturesPage() {
     fetchClients();
   }, [fetchAll, fetchClients]);
 
-  const filtered = invoices.filter((inv) => {
-    if (filterStatus && inv.status !== filterStatus) return false;
-    return inv.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
-      (inv.clients?.company_name || "").toLowerCase().includes(search.toLowerCase());
-  });
+  const filtered = applyDateFilter(
+    invoices.filter((inv) => {
+      if (filterStatus && inv.status !== filterStatus) return false;
+      return inv.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
+        (inv.clients?.company_name || "").toLowerCase().includes(search.toLowerCase());
+    }),
+    "issue_date", filterPeriod, customStart, customEnd
+  );
 
   const totalCA = invoices.filter((i) => i.status === "payee").reduce((s, i) => s + Number(i.total), 0);
   const totalImpaye = invoices.filter((i) => ["envoyee", "en_retard", "partiellement_payee"].includes(i.status)).reduce((s, i) => s + Number(i.total) - Number(i.paid_amount), 0);
@@ -292,7 +299,7 @@ export default function FacturesPage() {
               <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm w-full border-none outline-none" />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
                 <option value="">Tous statuts</option>
                 <option value="brouillon">Brouillon</option>
@@ -301,6 +308,7 @@ export default function FacturesPage() {
                 <option value="payee">Payée</option>
                 <option value="en_retard">En retard</option>
               </select>
+              <DateFilter period={filterPeriod} setPeriod={setFilterPeriod} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} />
               <Button onClick={openCreate} className="flex-shrink-0"><Plus className="w-4 h-4" /> Nouvelle facture</Button>
             </div>
           </div>

@@ -16,6 +16,7 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
+import { DateFilter } from "@/components/ui/date-filter";
 
 const statusColors = {
   payee: "success", envoyee: "primary", en_retard: "danger",
@@ -25,12 +26,16 @@ const priorityColors = { basse: "default", moyenne: "primary", haute: "warning",
 
 export default function DashboardPage() {
   const supabase = useSupabase();
-  const [stats, setStats] = useState({ ca: 0, expenses: 0, invoiceCount: 0 });
-  const [revenueData, setRevenueData] = useState([]);
-  const [recentInvoices, setRecentInvoices] = useState([]);
+  const [allPayments, setAllPayments] = useState([]);
+  const [allRevenues, setAllRevenues] = useState([]);
+  const [allExpenses, setAllExpenses] = useState([]);
+  const [allInvoices, setAllInvoices] = useState([]);
   const [todayTasks, setTodayTasks] = useState([]);
   const [activeProjects, setActiveProjects] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [filterPeriod, setFilterPeriod] = useState("month");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
 
   useEffect(() => { loadDashboard(); }, []);
 
@@ -43,62 +48,48 @@ export default function DashboardPage() {
       supabase.from("tasks").select("*, projects(name)").neq("status", "termine").order("due_date").limit(5),
       supabase.from("projects").select("id").eq("status", "en_cours"),
     ]);
-
-    const now = new Date();
-    const thisMonth = now.getMonth();
-    const thisYear = now.getFullYear();
-
-    const monthlyPayments = (payments || []).filter((p) => {
-      const d = new Date(p.payment_date);
-      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
-    }).reduce((s, p) => s + Number(p.amount), 0);
-
-    const monthlyRevenues = (revenues || []).filter((r) => {
-      const d = new Date(r.revenue_date);
-      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
-    }).reduce((s, r) => s + Number(r.amount), 0);
-
-    const ca = monthlyPayments + monthlyRevenues;
-
-    const impayeInvoices = (invoices || []).filter((i) => ["envoyee", "en_retard", "partiellement_payee"].includes(i.status));
-    const impaye = impayeInvoices.reduce((s, i) => s + Number(i.total) - Number(i.paid_amount), 0);
-
-    const totalRevenue = (payments || []).reduce((s, p) => s + Number(p.amount), 0) + (revenues || []).reduce((s, r) => s + Number(r.amount), 0);
-    const totalExpenses = (expenses || []).reduce((s, e) => s + Number(e.amount), 0);
-
-    const monthInvoices = (invoices || []).filter((i) => {
-      const d = new Date(i.created_at);
-      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
-    });
-
-    setStats({ ca, expenses: totalExpenses, invoiceCount: monthInvoices.length });
-    setRecentInvoices((invoices || []).slice(0, 5));
+    setAllInvoices(invoices || []);
+    setAllPayments(payments || []);
+    setAllExpenses(expenses || []);
+    setAllRevenues(revenues || []);
     setTodayTasks(tasks || []);
     setActiveProjects((projects || []).length);
-
-    const chartData = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(thisYear, thisMonth - i, 1);
-      const m = d.getMonth();
-      const y = d.getFullYear();
-      const label = d.toLocaleDateString("fr-FR", { month: "short" });
-      const payCA = (payments || []).filter((p) => {
-        const pd = new Date(p.payment_date);
-        return pd.getMonth() === m && pd.getFullYear() === y;
-      }).reduce((s, p) => s + Number(p.amount), 0);
-      const revCA = (revenues || []).filter((r) => {
-        const rd = new Date(r.revenue_date);
-        return rd.getMonth() === m && rd.getFullYear() === y;
-      }).reduce((s, r) => s + Number(r.amount), 0);
-      chartData.push({ mois: label, ca: payCA + revCA });
-    }
-    setRevenueData(chartData);
     setLoading(false);
   }
 
   async function toggleTask(task) {
     await supabase.from("tasks").update({ status: "termine" }).eq("id", task.id);
     loadDashboard();
+  }
+
+  // Compute stats from period-filtered data
+  function inPeriod(dateStr) {
+    if (!filterPeriod || !dateStr) return true;
+    const d = new Date(dateStr);
+    const now = new Date();
+    if (filterPeriod === "month") return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    if (filterPeriod === "quarter") { const q = Math.floor(now.getMonth() / 3); return Math.floor(d.getMonth() / 3) === q && d.getFullYear() === now.getFullYear(); }
+    if (filterPeriod === "year") return d.getFullYear() === now.getFullYear();
+    if (filterPeriod === "custom" && customStart && customEnd) return d >= new Date(customStart) && d <= new Date(customEnd + "T23:59:59");
+    return true;
+  }
+
+  const ca = allPayments.filter((p) => inPeriod(p.payment_date)).reduce((s, p) => s + Number(p.amount), 0)
+    + allRevenues.filter((r) => inPeriod(r.revenue_date)).reduce((s, r) => s + Number(r.amount), 0);
+  const expensesTotal = allExpenses.filter((e) => inPeriod(e.expense_date)).reduce((s, e) => s + Number(e.amount), 0);
+  const invoiceCount = allInvoices.filter((i) => inPeriod(i.created_at)).length;
+  const recentInvoices = allInvoices.filter((i) => inPeriod(i.issue_date || i.created_at)).slice(0, 5);
+
+  const now = new Date();
+  const revenueData = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const m = d.getMonth();
+    const y = d.getFullYear();
+    const label = d.toLocaleDateString("fr-FR", { month: "short" });
+    const payCA = allPayments.filter((p) => { const pd = new Date(p.payment_date); return pd.getMonth() === m && pd.getFullYear() === y; }).reduce((s, p) => s + Number(p.amount), 0);
+    const revCA = allRevenues.filter((r) => { const rd = new Date(r.revenue_date); return rd.getMonth() === m && rd.getFullYear() === y; }).reduce((s, r) => s + Number(r.amount), 0);
+    revenueData.push({ mois: label, ca: payCA + revCA });
   }
 
   if (loading) {
@@ -114,18 +105,21 @@ export default function DashboardPage() {
     <div>
       <Header title="Tableau de bord" />
       <div className="p-4 sm:p-6 space-y-6">
-        {/* Quick actions */}
-        <div className="flex flex-wrap gap-3">
-          <Link href="/dashboard/factures"><Button size="sm"><Plus className="w-4 h-4" /> Nouvelle facture</Button></Link>
-          <Link href="/dashboard/devis"><Button variant="secondary" size="sm"><FileText className="w-4 h-4" /> Nouveau devis</Button></Link>
-          <Link href="/dashboard/clients"><Button variant="secondary" size="sm"><Users className="w-4 h-4" /> Nouveau client</Button></Link>
+        {/* Quick actions + date filter */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-3">
+            <Link href="/dashboard/factures"><Button size="sm"><Plus className="w-4 h-4" /> Nouvelle facture</Button></Link>
+            <Link href="/dashboard/devis"><Button variant="secondary" size="sm"><FileText className="w-4 h-4" /> Nouveau devis</Button></Link>
+            <Link href="/dashboard/clients"><Button variant="secondary" size="sm"><Users className="w-4 h-4" /> Nouveau client</Button></Link>
+          </div>
+          <DateFilter period={filterPeriod} setPeriod={setFilterPeriod} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} />
         </div>
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard title="CA du mois" value={formatCurrency(stats.ca)} icon={TrendingUp} />
-          <StatCard title="Dépenses" value={formatCurrency(stats.expenses)} icon={Wallet} />
-          <StatCard title="Factures ce mois" value={stats.invoiceCount} icon={Receipt} />
+          <StatCard title="Chiffre d'affaires" value={formatCurrency(ca)} icon={TrendingUp} />
+          <StatCard title="Dépenses" value={formatCurrency(expensesTotal)} icon={Wallet} />
+          <StatCard title="Factures" value={invoiceCount} icon={Receipt} />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">

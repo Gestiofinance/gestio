@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { DateFilter, applyDateFilter } from "@/components/ui/date-filter";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -46,6 +47,9 @@ export default function DevisPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterPeriod, setFilterPeriod] = useState("");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
 
   const [form, setForm] = useState({
     client_id: "", status: "brouillon", issue_date: new Date().toISOString().split("T")[0],
@@ -59,11 +63,14 @@ export default function DevisPage() {
     fetchClients();
   }, [fetchAll, fetchClients]);
 
-  const filtered = quotes.filter((q) => {
-    if (filterStatus && q.status !== filterStatus) return false;
-    return q.quote_number.toLowerCase().includes(search.toLowerCase()) ||
-      (q.clients?.company_name || "").toLowerCase().includes(search.toLowerCase());
-  });
+  const filtered = applyDateFilter(
+    quotes.filter((q) => {
+      if (filterStatus && q.status !== filterStatus) return false;
+      return q.quote_number.toLowerCase().includes(search.toLowerCase()) ||
+        (q.clients?.company_name || "").toLowerCase().includes(search.toLowerCase());
+    }),
+    "issue_date", filterPeriod, customStart, customEnd
+  );
 
   function calcTotals(items) {
     const subtotal = items.reduce((s, l) => s + l.quantity * l.unit_price, 0);
@@ -228,7 +235,7 @@ export default function DevisPage() {
               <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm w-full border-none outline-none" />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
                 <option value="">Tous statuts</option>
                 <option value="brouillon">Brouillon</option>
@@ -237,6 +244,7 @@ export default function DevisPage() {
                 <option value="refuse">Refusé</option>
                 <option value="expire">Expiré</option>
               </select>
+              <DateFilter period={filterPeriod} setPeriod={setFilterPeriod} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} />
               <Button onClick={openCreate} className="flex-shrink-0"><Plus className="w-4 h-4" /> Nouveau devis</Button>
             </div>
           </div>

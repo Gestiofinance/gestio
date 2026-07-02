@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useCrud } from "@/hooks/useSupabase";
 import { useAuth } from "@/hooks/useAuth";
+import { DateFilter, applyDateFilter } from "@/components/ui/date-filter";
 import { formatShortDate } from "@/lib/utils";
 import {
   CheckSquare, Plus, Search, Calendar, MoreVertical,
@@ -213,6 +214,9 @@ export default function TachesPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterPriority, setFilterPriority] = useState("");
+  const [filterPeriod, setFilterPeriod] = useState("");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -225,11 +229,14 @@ export default function TachesPage() {
     fetchProjects();
   }, [fetchAll, fetchProjects]);
 
-  const filtered = tasks.filter((t) => {
-    if (filterStatus && t.status !== filterStatus) return false;
-    if (filterPriority && t.priority !== filterPriority) return false;
-    return (t.title || "").toLowerCase().includes(search.toLowerCase());
-  });
+  const filtered = applyDateFilter(
+    tasks.filter((t) => {
+      if (filterStatus && t.status !== filterStatus) return false;
+      if (filterPriority && t.priority !== filterPriority) return false;
+      return (t.title || "").toLowerCase().includes(search.toLowerCase());
+    }),
+    "due_date", filterPeriod, customStart, customEnd
+  );
 
   function openCreate() { setForm(emptyForm); setEditing(null); setShowForm(true); }
   function openEdit(t) {
@@ -329,6 +336,7 @@ export default function TachesPage() {
               <option value="haute">Haute</option>
               <option value="urgente">Urgente</option>
             </select>
+            <DateFilter period={filterPeriod} setPeriod={setFilterPeriod} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} />
             <button
               onClick={openCreate}
               className="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl text-sm font-semibold transition-all shadow-sm"

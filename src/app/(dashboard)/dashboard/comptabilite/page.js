@@ -56,6 +56,8 @@ export default function ComptabilitePage() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [filterCategory, setFilterCategory] = useState("");
   const [filterPeriod, setFilterPeriod] = useState("");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [showRecette, setShowRecette] = useState(false);
   const [editingRecette, setEditingRecette] = useState(null);
   const [recetteForm, setRecetteForm] = useState({ description: "", amount: "", revenue_date: new Date().toISOString().split("T")[0], payment_method: "virement", reference: "", client_name: "" });
@@ -75,17 +77,33 @@ export default function ComptabilitePage() {
     setPayments(pay || []);
   }
 
-  const revenueFromPayments = payments.reduce((s, p) => s + Number(p.amount), 0);
-  const revenueFromRecettes = revenues.reduce((s, r) => s + Number(r.amount), 0);
+  // Apply period filter to expenses, revenues, payments
+  function inPeriod(dateStr) {
+    if (!filterPeriod || !dateStr) return !filterPeriod;
+    const d = new Date(dateStr);
+    const now = new Date();
+    if (filterPeriod === "month") return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    if (filterPeriod === "quarter") { const q = Math.floor(now.getMonth() / 3); return Math.floor(d.getMonth() / 3) === q && d.getFullYear() === now.getFullYear(); }
+    if (filterPeriod === "year") return d.getFullYear() === now.getFullYear();
+    if (filterPeriod === "custom" && customStart && customEnd) return d >= new Date(customStart) && d <= new Date(customEnd + "T23:59:59");
+    return true;
+  }
+
+  const filteredPayments = payments.filter((p) => inPeriod(p.payment_date));
+  const filteredRevenues = revenues.filter((r) => inPeriod(r.revenue_date));
+  const filteredExpenses = expenses.filter((e) => inPeriod(e.expense_date));
+
+  const revenueFromPayments = filteredPayments.reduce((s, p) => s + Number(p.amount), 0);
+  const revenueFromRecettes = filteredRevenues.reduce((s, r) => s + Number(r.amount), 0);
   const totalRevenue = revenueFromPayments + revenueFromRecettes;
-  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0);
+  const totalExpenses = filteredExpenses.reduce((s, e) => s + Number(e.amount), 0);
   const treasury = totalRevenue - totalExpenses;
   const totalTVACollectee = invoices.filter((i) => i.status === "payee").reduce((s, i) => s + Number(i.tax_amount), 0);
-  const totalTVADeductible = expenses.reduce((s, e) => s + Number(e.tax_amount || 0), 0);
+  const totalTVADeductible = filteredExpenses.reduce((s, e) => s + Number(e.tax_amount || 0), 0);
 
   const expensesByCategory = expenseCategories.map((cat) => ({
     name: cat.label,
-    value: expenses.filter((e) => e.category === cat.value).reduce((s, e) => s + Number(e.amount), 0),
+    value: filteredExpenses.filter((e) => e.category === cat.value).reduce((s, e) => s + Number(e.amount), 0),
     color: categoryColors[cat.value],
   })).filter((c) => c.value > 0);
 
@@ -213,7 +231,15 @@ export default function ComptabilitePage() {
               <option value="month">Ce mois</option>
               <option value="quarter">Ce trimestre</option>
               <option value="year">Cette année</option>
+              <option value="custom">Période personnalisée</option>
             </select>
+            {filterPeriod === "custom" && (
+              <div className="flex items-center gap-2">
+                <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600" />
+                <span className="text-slate-400 text-sm">→</span>
+                <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600" />
+              </div>
+            )}
             <Button variant="secondary" size="sm" onClick={openCreate}><ArrowDownCircle className="w-4 h-4 text-danger-500" /> Dépense</Button>
             <Button variant="secondary" size="sm" onClick={openRecetteCreate}><ArrowUpCircle className="w-4 h-4 text-success-500" /> Recette</Button>
           </div>
@@ -279,7 +305,7 @@ export default function ComptabilitePage() {
               </select>
               <Button onClick={openCreate}><Plus className="w-4 h-4" /> Nouvelle dépense</Button>
             </div>
-            <Card><DataTable columns={expenseColumns} data={filterCategory ? expenses.filter((e) => e.category === filterCategory) : expenses} emptyMessage="Aucune dépense enregistrée" /></Card>
+            <Card><DataTable columns={expenseColumns} data={filterCategory ? filteredExpenses.filter((e) => e.category === filterCategory) : filteredExpenses} emptyMessage="Aucune dépense enregistrée" /></Card>
           </div>
         )}
 

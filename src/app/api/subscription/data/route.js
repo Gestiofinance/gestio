@@ -15,7 +15,7 @@ export async function GET() {
     // Get profile with org (admin bypasses RLS)
     const { data: profile } = await admin
       .from("profiles")
-      .select("organization_id, full_name, organizations(id, name)")
+      .select("organization_id, full_name, role, organizations(id, name)")
       .eq("id", user.id)
       .single();
 
@@ -45,6 +45,7 @@ export async function GET() {
       payments: payments ?? [],
       orgId,
       orgName: profile?.organizations?.name || profile?.full_name || "Mon entreprise",
+      userRole: profile?.role ?? null,
     });
   } catch (e) {
     console.error("Subscription data error:", e);

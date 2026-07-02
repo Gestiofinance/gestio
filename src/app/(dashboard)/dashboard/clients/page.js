@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DateFilter, applyDateFilter } from "@/components/ui/date-filter";
 import { useCrud } from "@/hooks/useSupabase";
 import {
   Users, Plus, Search, Building2, User, Mail, Phone, MapPin, MoreVertical, Pencil, Trash2, Eye,
@@ -61,21 +62,27 @@ export default function ClientsPage() {
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
   const [filterType, setFilterType] = useState("");
+  const [filterPeriod, setFilterPeriod] = useState("");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
 
-  const filteredClients = clients.filter((c) => {
-    if (filterStatus && c.status !== filterStatus) return false;
-    if (filterType && c.type !== filterType) return false;
-    const q = search.toLowerCase();
-    return (
-      (c.company_name || "").toLowerCase().includes(q) ||
-      c.contact_name.toLowerCase().includes(q) ||
-      (c.email || "").toLowerCase().includes(q)
-    );
-  });
+  const filteredClients = applyDateFilter(
+    clients.filter((c) => {
+      if (filterStatus && c.status !== filterStatus) return false;
+      if (filterType && c.type !== filterType) return false;
+      const q = search.toLowerCase();
+      return (
+        (c.company_name || "").toLowerCase().includes(q) ||
+        c.contact_name.toLowerCase().includes(q) ||
+        (c.email || "").toLowerCase().includes(q)
+      );
+    }),
+    "created_at", filterPeriod, customStart, customEnd
+  );
 
   function openCreate() {
     setForm(emptyForm);
@@ -198,7 +205,7 @@ export default function ClientsPage() {
               <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm w-full border-none outline-none" />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
                 <option value="">Statut</option>
                 <option value="actif">Actif</option>
@@ -210,6 +217,7 @@ export default function ClientsPage() {
                 <option value="entreprise">Entreprise</option>
                 <option value="particulier">Particulier</option>
               </select>
+              <DateFilter period={filterPeriod} setPeriod={setFilterPeriod} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} />
               <Button onClick={openCreate} className="flex-shrink-0">
                 <Plus className="w-4 h-4" /> Nouveau client
               </Button>

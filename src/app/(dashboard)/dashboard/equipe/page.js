@@ -10,7 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useAuth } from "@/hooks/useAuth";
+// useAuth removed — role fetched from /api/subscription/data
 import {
   UserCog, UserPlus, Trash2, Crown, Lock, ArrowRight, Users,
   CheckCircle2,
@@ -64,10 +64,10 @@ function UpsellGate({ plan }) {
 }
 
 export default function EquipePage() {
-  const { profile } = useAuth();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [subscription, setSubscription] = useState(undefined); // undefined = not loaded yet
+  const [subscription, setSubscription] = useState(undefined);
+  const [userRole, setUserRole] = useState(null); // loaded from API
   const [showAdd, setShowAdd] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -77,10 +77,10 @@ export default function EquipePage() {
 
   useEffect(() => {
     async function init() {
-      // Fetch subscription status first
       const res = await fetch("/api/subscription/data");
       const json = await res.json();
       setSubscription(json.subscription ?? null);
+      setUserRole(json.userRole ?? null);
 
       const plan = json.subscription?.plan_id;
       const status = json.subscription?.status;
@@ -141,7 +141,7 @@ export default function EquipePage() {
     setDeleteConfirm(null);
   }
 
-  const isOwner = profile?.role === "proprietaire";
+  const isOwner = userRole === "proprietaire";
 
   // Still loading subscription data
   if (subscription === undefined) {
