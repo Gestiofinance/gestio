@@ -14,8 +14,9 @@ import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useCrud } from "@/hooks/useSupabase";
 import { formatCurrency } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import {
-  Building2, FileText, CreditCard, Palette, Save, Plus, Pencil, Trash2, Check, Upload, X, Image as ImageIcon, Stamp,
+  Building2, FileText, CreditCard, Palette, Save, Plus, Pencil, Trash2, Check, Upload, X, Image as ImageIcon, Stamp, Lock,
 } from "lucide-react";
 
 const emptyProduct = { name: "", description: "", unit_price: "", tax_rate: "18", unit: "unité", type: "service" };
@@ -44,6 +45,10 @@ export default function ParametresPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const [stampUrl, setStampUrl] = useState("");
   const [uploading, setUploading] = useState({ logo: false, stamp: false });
+  const [pwForm, setPwForm] = useState({ newPassword: "", confirmPassword: "" });
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
 
   // Load org data from server API (bypasses RLS)
   useEffect(() => {
@@ -121,6 +126,31 @@ export default function ParametresPage() {
     }
   }
 
+  async function handleChangePassword(e) {
+    e.preventDefault();
+    setPwError("");
+    setPwSuccess(false);
+    if (pwForm.newPassword.length < 8) {
+      setPwError("Le mot de passe doit contenir au moins 8 caractères.");
+      return;
+    }
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setPwError("Les mots de passe ne correspondent pas.");
+      return;
+    }
+    setPwLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password: pwForm.newPassword });
+    if (error) {
+      setPwError("Une erreur est survenue. Veuillez réessayer.");
+    } else {
+      setPwSuccess(true);
+      setPwForm({ newPassword: "", confirmPassword: "" });
+      setTimeout(() => setPwSuccess(false), 3000);
+    }
+    setPwLoading(false);
+  }
+
   async function removeImage(type) {
     if (type === "logo") setLogoUrl("");
     else setStampUrl("");
@@ -190,6 +220,7 @@ export default function ParametresPage() {
             { value: "catalogue", label: "Catalogue", count: catalog.length },
             { value: "paiement", label: "Paiement" },
             { value: "theme", label: "Thème PDF" },
+            { value: "compte", label: "Compte" },
           ]}
           activeTab={tab} onChange={setTab}
         />
@@ -451,6 +482,53 @@ export default function ParametresPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* ── Compte ── */}
+        {tab === "compte" && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-primary-500" />
+                <h3 className="font-semibold">Sécurité du compte</h3>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted mb-6">Modifiez votre mot de passe de connexion.</p>
+              <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
+                <Input
+                  id="newPassword"
+                  label="Nouveau mot de passe"
+                  type="password"
+                  placeholder="8 caractères minimum"
+                  value={pwForm.newPassword}
+                  onChange={e => setPwForm({ ...pwForm, newPassword: e.target.value })}
+                  required
+                />
+                <Input
+                  id="confirmPassword"
+                  label="Confirmer le mot de passe"
+                  type="password"
+                  placeholder="••••••••"
+                  value={pwForm.confirmPassword}
+                  onChange={e => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                  required
+                />
+                {pwError && (
+                  <p className="text-sm text-danger-500 bg-danger-50 px-3 py-2 rounded-lg">{pwError}</p>
+                )}
+                {pwSuccess && (
+                  <p className="text-sm text-success-500 bg-success-50 px-3 py-2 rounded-lg">✓ Mot de passe mis à jour avec succès !</p>
+                )}
+                <div className="flex items-center gap-3">
+                  <Button type="submit" disabled={pwLoading}>
+                    <Lock className="w-4 h-4" />
+                    {pwLoading ? "Enregistrement..." : "Changer le mot de passe"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         )}
       </div>
 

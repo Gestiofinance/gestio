@@ -1,36 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 
-export default function MotDePasseOubliePage() {
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+export default function ReinitialiserMotDePassePage() {
+  const router = useRouter();
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    setLoading(true);
 
+    if (password.length < 8) {
+      setError("Le mot de passe doit contenir au moins 8 caractères.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Les mots de passe ne correspondent pas.");
+      return;
+    }
+
+    setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reinitialiser-mot-de-passe`,
-    });
+    const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      setError("Une erreur est survenue. Veuillez réessayer.");
+      setError("Une erreur est survenue. Le lien a peut-être expiré.");
       setLoading(false);
       return;
     }
 
-    setSent(true);
-    setLoading(false);
+    setDone(true);
+    setTimeout(() => router.push("/dashboard"), 2500);
   }
 
   return (
@@ -40,44 +49,46 @@ export default function MotDePasseOubliePage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
-        {sent ? (
+        {done ? (
           <div className="text-center py-4">
             <div className="inline-flex p-3 rounded-full bg-success-50 mb-4">
               <CheckCircle className="w-8 h-8 text-success-500" />
             </div>
             <h2 className="text-xl font-bold text-foreground mb-2">
-              Email envoyé !
+              Mot de passe mis à jour !
             </h2>
-            <p className="text-sm text-muted mb-6">
-              Si un compte existe avec l&apos;adresse <strong>{email}</strong>,
-              vous recevrez un lien de réinitialisation.
+            <p className="text-sm text-muted">
+              Redirection vers votre tableau de bord...
             </p>
-            <Link
-              href="/login"
-              className="text-primary-500 hover:text-primary-600 font-medium text-sm"
-            >
-              Retour à la connexion
-            </Link>
           </div>
         ) : (
           <>
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-foreground">
-                Mot de passe oublié
+                Nouveau mot de passe
               </h2>
               <p className="text-sm text-muted mt-1">
-                Entrez votre email pour recevoir un lien de réinitialisation
+                Choisissez un nouveau mot de passe sécurisé
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
-                id="email"
-                label="Adresse email"
-                type="email"
-                placeholder="vous@entreprise.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="password"
+                label="Nouveau mot de passe"
+                type="password"
+                placeholder="8 caractères minimum"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <Input
+                id="confirm"
+                label="Confirmer le mot de passe"
+                type="password"
+                placeholder="••••••••"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
                 required
               />
 
@@ -88,19 +99,9 @@ export default function MotDePasseOubliePage() {
               )}
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Envoi en cours..." : "Envoyer le lien"}
+                {loading ? "Enregistrement..." : "Enregistrer le mot de passe"}
               </Button>
             </form>
-
-            <div className="mt-6 text-center">
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground font-medium"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Retour à la connexion
-              </Link>
-            </div>
           </>
         )}
       </div>
