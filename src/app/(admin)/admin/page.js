@@ -3,9 +3,7 @@
 import { useState, useEffect } from "react";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { getPlanLabel } from "@/lib/plans";
-import {
-  Building2, CreditCard, TrendingUp, Clock,
-} from "lucide-react";
+import { Building2, CreditCard, TrendingUp } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -14,13 +12,14 @@ const statusColors = {
   trial: "text-warning-400 bg-warning-400/10",
   active: "text-success-400 bg-success-400/10",
   past_due: "text-danger-400 bg-danger-400/10",
+  suspended: "text-danger-400 bg-danger-400/10",
   cancelled: "text-slate-400 bg-slate-700",
   expired: "text-slate-400 bg-slate-700",
 };
 
 const statusLabels = {
   trial: "Essai", active: "Actif", past_due: "En retard",
-  cancelled: "Annulé", expired: "Expiré",
+  suspended: "Suspendu", cancelled: "Annulé", expired: "Expiré",
 };
 
 const planColors = {
@@ -33,7 +32,6 @@ function AdminStatCard({ title, value, sub, icon: Icon, color = "primary" }) {
   const colors = {
     primary: "bg-primary-500/10 text-primary-400 border-primary-500/20",
     success: "bg-success-500/10 text-success-400 border-success-500/20",
-    warning: "bg-warning-500/10 text-warning-400 border-warning-500/20",
     violet: "bg-violet-500/10 text-violet-400 border-violet-500/20",
   };
   return (
@@ -52,12 +50,31 @@ function AdminStatCard({ title, value, sub, icon: Icon, color = "primary" }) {
   );
 }
 
+function filterPayments(payments, period, customStart, customEnd) {
+  const now = new Date();
+  return payments.filter((p) => {
+    const d = new Date(p.paid_at || p.created_at);
+    if (period === "month") return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    if (period === "quarter") {
+      const q = Math.floor(now.getMonth() / 3);
+      return Math.floor(d.getMonth() / 3) === q && d.getFullYear() === now.getFullYear();
+    }
+    if (period === "year") return d.getFullYear() === now.getFullYear();
+    if (period === "custom" && customStart && customEnd) {
+      return d >= new Date(customStart) && d <= new Date(customEnd + "T23:59:59");
+    }
+    return true;
+  });
+}
+
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState({ orgs: 0, active: 0, trial: 0, mrr: 0 });
-  const [recentOrgs, setRecentOrgs] = useState([]);
-  const [revenueChart, setRevenueChart] = useState([]);
-  const [recentPayments, setRecentPayments] = useState([]);
+  const [allOrgs, setAllOrgs] = useState([]);
+  const [allSubs, setAllSubs] = useState([]);
+  const [allPayments, setAllPayments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState("all");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
 
   useEffect(() => { loadData(); }, []);
 
@@ -67,52 +84,11 @@ export default function AdminDashboardPage() {
         fetch("/api/admin/users"),
         fetch("/api/admin/subscriptions"),
       ]);
+      const [usersData, subsData] = await Promise.all([usersRes.json(), subsRes.json()]);
 
-      const [usersData, subsData] = await Promise.all([
-        usersRes.json(),
-        subsRes.json(),
-      ]);
-
-      const orgs = usersData.organizations || [];
-      const subs = subsData.subscriptions || [];
-      const payments = subsData.payments || [];
-
-      const now = new Date();
-      const thisMonth = now.getMonth();
-      const thisYear = now.getFullYear();
-
-      const active = subs.filter((s) => s.status === "active");
-      const trial = subs.filter((s) => s.status === "trial");
-      const mrr = active.reduce((acc, s) => {
-        if (s.billing_cycle === "annual") return acc + Math.round(s.amount / 12);
-        if (s.billing_cycle === "quarterly") return acc + Math.round(s.amount / 3);
-        return acc + (s.amount || 0);
-      }, 0);
-
-      setStats({ orgs: orgs.length, active: active.length, trial: trial.length, mrr });
-
-      setRecentOrgs(orgs.slice(0, 5).map((org) => {
-        const sub = subs.find((s) => s.organization_id === org.id);
-        return { ...org, sub };
-      }));
-
-      const completedPayments = payments.filter((p) => p.status === "completed");
-      setRecentPayments(completedPayments.slice(0, 8));
-
-      // 6-month revenue chart from completed payments
-      const chart = [];
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(thisYear, thisMonth - i, 1);
-        const m = d.getMonth();
-        const y = d.getFullYear();
-        const label = d.toLocaleDateString("fr-FR", { month: "short" });
-        const rev = completedPayments.filter((p) => {
-          const pd = new Date(p.paid_at || p.created_at);
-          return pd.getMonth() === m && pd.getFullYear() === y;
-        }).reduce((acc, p) => acc + (p.amount || 0), 0);
-        chart.push({ mois: label, revenus: rev });
-      }
-      setRevenueChart(chart);
+      setAllOrgs(usersData.organizations || []);
+      setAllSubs(subsData.subscriptions || []);
+      setAllPayments((subsData.payments || []).filter((p) => p.status === "completed"));
     } catch (e) {
       console.error("Admin dashboard error:", e);
     } finally {
@@ -120,18 +96,100 @@ export default function AdminDashboardPage() {
     }
   }
 
+  const now = new Date();
+  const filteredPayments = filterPayments(allPayments, period, customStart, customEnd);
+
+  const active = allSubs.filter((s) => s.status === "active");
+  const mrr = active.reduce((acc, s) => {
+    if (s.billing_cycle === "annual") return acc + Math.round((s.amount || 0) / 12);
+    if (s.billing_cycle === "quarterly") return acc + Math.round((s.amount || 0) / 3);
+    return acc + (s.amount || 0);
+  }, 0);
+  const totalRevenue = filteredPayments.reduce((s, p) => s + (p.amount || 0), 0);
+
+  const recentOrgs = allOrgs.slice(0, 5).map((org) => ({
+    ...org,
+    sub: allSubs.find((s) => s.organization_id === org.id),
+  }));
+
+  const recentPayments = filteredPayments.slice(0, 8);
+
+  // 6-month revenue chart
+  const revenueChart = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const m = d.getMonth();
+    const y = d.getFullYear();
+    const label = d.toLocaleDateString("fr-FR", { month: "short" });
+    const rev = allPayments.filter((p) => {
+      const pd = new Date(p.paid_at || p.created_at);
+      return pd.getMonth() === m && pd.getFullYear() === y;
+    }).reduce((acc, p) => acc + (p.amount || 0), 0);
+    revenueChart.push({ mois: label, revenus: rev });
+  }
+
   return (
     <div className="p-6 sm:p-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Tableau de bord Admin</h1>
-        <p className="text-slate-400 text-sm mt-1">Vue globale de la plateforme Gestio</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Tableau de bord Admin</h1>
+          <p className="text-slate-400 text-sm mt-1">Vue globale de la plateforme Gestio</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-300"
+          >
+            <option value="all">Tout le temps</option>
+            <option value="month">Ce mois</option>
+            <option value="quarter">Ce trimestre</option>
+            <option value="year">Cette année</option>
+            <option value="custom">Période personnalisée</option>
+          </select>
+          {period === "custom" && (
+            <>
+              <input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-300"
+              />
+              <span className="text-slate-500 text-sm">→</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-300"
+              />
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <AdminStatCard title="Organisations" value={stats.orgs} sub="comptes enregistrés" icon={Building2} color="primary" />
-        <AdminStatCard title="Abonnements actifs" value={stats.active} sub={`${stats.trial} en essai`} icon={CreditCard} color="success" />
-        <AdminStatCard title="MRR estimé" value={formatCurrency(stats.mrr)} sub="mensuel récurrent" icon={TrendingUp} color="violet" />
-        <AdminStatCard title="Utilisateurs en essai" value={stats.trial} sub="14 jours offerts" icon={Clock} color="warning" />
+      {/* Stats — 3 cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <AdminStatCard
+          title="Revenus total"
+          value={formatCurrency(totalRevenue)}
+          sub={period === "all" ? "depuis le début" : "période sélectionnée"}
+          icon={TrendingUp}
+          color="primary"
+        />
+        <AdminStatCard
+          title="Abonnements actifs"
+          value={active.length}
+          sub={`${allSubs.filter((s) => s.status === "trial").length} en essai`}
+          icon={CreditCard}
+          color="success"
+        />
+        <AdminStatCard
+          title="MRR estimé"
+          value={formatCurrency(mrr)}
+          sub="mensuel récurrent"
+          icon={Building2}
+          color="violet"
+        />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -215,18 +273,14 @@ export default function AdminDashboardPage() {
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${planColors[org.sub.plan_id] || "text-slate-400 bg-slate-700"}`}>
                         {getPlanLabel(org.sub.plan_id)}
                       </span>
-                    ) : (
-                      <span className="text-xs text-slate-500">—</span>
-                    )}
+                    ) : <span className="text-xs text-slate-500">—</span>}
                   </td>
                   <td className="px-6 py-3">
                     {org.sub ? (
                       <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[org.sub.status] || "text-slate-400 bg-slate-700"}`}>
                         {statusLabels[org.sub.status] || org.sub.status}
                       </span>
-                    ) : (
-                      <span className="text-xs text-slate-500">Pas d&apos;abonnement</span>
-                    )}
+                    ) : <span className="text-xs text-slate-500">Pas d&apos;abonnement</span>}
                   </td>
                 </tr>
               ))}

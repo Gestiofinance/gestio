@@ -21,6 +21,7 @@ function isValid(sub) {
 }
 
 function LockScreen({ subscription }) {
+  const isSuspended = subscription?.status === "suspended";
   const isTrialExpired =
     subscription?.status === "trial" &&
     (!subscription.trial_end || new Date(subscription.trial_end) <= new Date());
@@ -31,7 +32,10 @@ function LockScreen({ subscription }) {
   let title = "Module verrouillé";
   let message = "Souscrivez à un plan pour accéder à tous les modules de Gestio.";
 
-  if (isTrialExpired) {
+  if (isSuspended) {
+    title = "Compte suspendu";
+    message = "Votre compte a été suspendu par l'administrateur. Contactez le support Gestio pour plus d'informations.";
+  } else if (isTrialExpired) {
     title = "Période d'essai terminée";
     message = "Votre essai gratuit a expiré. Choisissez un plan pour continuer à utiliser Gestio.";
   } else if (isPastDue) {
@@ -83,6 +87,9 @@ export function SubscriptionGate({ children }) {
       .then((data) => setSubscription(data.subscription ?? null))
       .catch(() => setSubscription(null));
   }, []);
+
+  // Suspended accounts are blocked everywhere
+  if (subscription?.status === "suspended") return <LockScreen subscription={subscription} />;
 
   // Always pass through exempt paths
   if (isExempt(pathname)) return children;

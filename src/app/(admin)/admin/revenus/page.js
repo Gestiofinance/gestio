@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSupabase } from "@/hooks/useSupabase";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { getPlanLabel, getCycleLabel } from "@/lib/plans";
-import { TrendingUp, DollarSign, Calendar, Award } from "lucide-react";
+import { TrendingUp, DollarSign, Award } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -13,61 +12,68 @@ import {
 const PLAN_COLORS = { standard: "#5E5CE6", pro: "#8B5CF6", business: "#22c55e" };
 
 export default function AdminRevenusPage() {
-  const supabase = useSupabase();
-  const [payments, setPayments] = useState([]);
+  const [allPayments, setAllPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("all");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
 
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
-    const { data } = await supabase
-      .from("subscription_payments")
-      .select("*, organizations(name)")
-      .eq("status", "completed")
-      .order("paid_at", { ascending: false });
-    setPayments(data || []);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/admin/subscriptions");
+      if (!res.ok) throw new Error("Erreur API");
+      const { payments } = await res.json();
+      // Keep only completed payments
+      setAllPayments((payments || []).filter((p) => p.status === "completed"));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const now = new Date();
-  const filtered = payments.filter((p) => {
+
+  const filtered = allPayments.filter((p) => {
+    const d = new Date(p.paid_at || p.created_at);
     if (period === "month") {
-      const d = new Date(p.paid_at);
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }
     if (period === "quarter") {
-      const d = new Date(p.paid_at);
       const q = Math.floor(now.getMonth() / 3);
       return Math.floor(d.getMonth() / 3) === q && d.getFullYear() === now.getFullYear();
     }
     if (period === "year") {
-      return new Date(p.paid_at).getFullYear() === now.getFullYear();
+      return d.getFullYear() === now.getFullYear();
+    }
+    if (period === "custom" && customStart && customEnd) {
+      return d >= new Date(customStart) && d <= new Date(customEnd + "T23:59:59");
     }
     return true;
   });
 
-  const totalRevenue = filtered.reduce((s, p) => s + p.amount, 0);
+  const totalRevenue = filtered.reduce((s, p) => s + (p.amount || 0), 0);
   const avgPayment = filtered.length > 0 ? Math.round(totalRevenue / filtered.length) : 0;
 
-  // Monthly chart (last 12 months)
+  // Monthly chart (last 12 months, always from allPayments)
   const monthlyChart = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const m = d.getMonth();
     const y = d.getFullYear();
     const label = d.toLocaleDateString("fr-FR", { month: "short", year: "2-digit" });
-    const rev = payments.filter((p) => {
-      const pd = new Date(p.paid_at);
+    const rev = allPayments.filter((p) => {
+      const pd = new Date(p.paid_at || p.created_at);
       return pd.getMonth() === m && pd.getFullYear() === y;
-    }).reduce((s, p) => s + p.amount, 0);
+    }).reduce((s, p) => s + (p.amount || 0), 0);
     monthlyChart.push({ mois: label, revenus: rev });
   }
 
-  // Plan distribution
   const planDist = ["standard", "pro", "business"].map((planId) => ({
     name: getPlanLabel(planId),
-    value: filtered.filter((p) => p.plan_id === planId).reduce((s, p) => s + p.amount, 0),
+    value: filtered.filter((p) => p.plan_id === planId).reduce((s, p) => s + (p.amount || 0), 0),
     count: filtered.filter((p) => p.plan_id === planId).length,
     color: PLAN_COLORS[planId],
   })).filter((p) => p.value > 0);
@@ -79,16 +85,36 @@ export default function AdminRevenusPage() {
           <h1 className="text-2xl font-bold text-white">Revenus</h1>
           <p className="text-slate-400 text-sm mt-1">Analyse des revenus des abonnements</p>
         </div>
-        <select
-          value={period}
-          onChange={(e) => setPeriod(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-300 w-fit"
-        >
-          <option value="all">Tout le temps</option>
-          <option value="month">Ce mois</option>
-          <option value="quarter">Ce trimestre</option>
-          <option value="year">Cette année</option>
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-300"
+          >
+            <option value="all">Tout le temps</option>
+            <option value="month">Ce mois</option>
+            <option value="quarter">Ce trimestre</option>
+            <option value="year">Cette année</option>
+            <option value="custom">Période personnalisée</option>
+          </select>
+          {period === "custom" && (
+            <>
+              <input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-300"
+              />
+              <span className="text-slate-500 text-sm">→</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-300"
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {/* KPIs */}
@@ -119,7 +145,7 @@ export default function AdminRevenusPage() {
               <BarChart data={monthlyChart}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis dataKey="mois" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => v > 0 ? `${v / 1000}k` : "0"} />
+                <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => v > 0 ? `${(v / 1000).toFixed(0)}k` : "0"} />
                 <Tooltip
                   contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "8px", color: "#fff" }}
                   formatter={(v) => [formatCurrency(v), "Revenus"]}
@@ -143,7 +169,10 @@ export default function AdminRevenusPage() {
                     <Pie data={planDist} cx="50%" cy="50%" outerRadius={60} dataKey="value" nameKey="name">
                       {planDist.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                     </Pie>
-                    <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "8px", color: "#fff" }} formatter={(v) => formatCurrency(v)} />
+                    <Tooltip
+                      contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "8px", color: "#fff" }}
+                      formatter={(v) => formatCurrency(v)}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -190,7 +219,7 @@ export default function AdminRevenusPage() {
                 <tr key={p.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
                   <td className="px-6 py-3 text-sm font-medium text-white">{p.organizations?.name || "—"}</td>
                   <td className="px-6 py-3">
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ color: PLAN_COLORS[p.plan_id], background: PLAN_COLORS[p.plan_id] + "20" }}>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ color: PLAN_COLORS[p.plan_id], background: (PLAN_COLORS[p.plan_id] || "#666") + "20" }}>
                       {getPlanLabel(p.plan_id)}
                     </span>
                   </td>
