@@ -185,36 +185,35 @@ export default function ClientsPage() {
       <div className="p-4 sm:p-6 space-y-4">
         {/* Top bar */}
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <Tabs
-              tabs={[
-                { value: "liste", label: "Liste", count: clients.length },
-                { value: "kanban", label: "Kanban" },
-              ]}
-              activeTab={view}
-              onChange={setView}
-            />
-            <Button onClick={openCreate} className="sm:hidden" size="sm"><Plus className="w-4 h-4" /></Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white flex-1">
+          <Tabs
+            tabs={[
+              { value: "liste", label: "Liste", count: clients.length },
+              { value: "kanban", label: "Kanban" },
+            ]}
+            activeTab={view}
+            onChange={setView}
+          />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white sm:flex-1">
               <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm w-full border-none outline-none" />
             </div>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-2 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 flex-shrink-0">
-              <option value="">Statut</option>
-              <option value="actif">Actif</option>
-              <option value="prospect">Prospect</option>
-              <option value="inactif">Inactif</option>
-            </select>
-            <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="hidden sm:block px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
-              <option value="">Tous les types</option>
-              <option value="entreprise">Entreprise</option>
-              <option value="particulier">Particulier</option>
-            </select>
-            <Button onClick={openCreate} className="hidden sm:flex">
-              <Plus className="w-4 h-4" /> Nouveau client
-            </Button>
+            <div className="flex items-center gap-2">
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
+                <option value="">Statut</option>
+                <option value="actif">Actif</option>
+                <option value="prospect">Prospect</option>
+                <option value="inactif">Inactif</option>
+              </select>
+              <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="hidden sm:block flex-none px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
+                <option value="">Tous les types</option>
+                <option value="entreprise">Entreprise</option>
+                <option value="particulier">Particulier</option>
+              </select>
+              <Button onClick={openCreate} className="flex-shrink-0">
+                <Plus className="w-4 h-4" /> Nouveau client
+              </Button>
+            </div>
           </div>
         </div>
 

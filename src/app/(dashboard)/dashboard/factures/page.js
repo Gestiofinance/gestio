@@ -285,25 +285,24 @@ export default function FacturesPage() {
           </div>
         )}
 
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-foreground">Toutes les factures</h2>
-            <Button onClick={openCreate} className="sm:hidden" size="sm"><Plus className="w-4 h-4" /></Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white flex-1">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl font-semibold text-foreground">Toutes les factures</h2>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white sm:flex-1">
               <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm w-full border-none outline-none" />
             </div>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 flex-shrink-0">
-              <option value="">Tous statuts</option>
-              <option value="brouillon">Brouillon</option>
-              <option value="envoyee">Envoyée</option>
-              <option value="partiellement_payee">Partiel</option>
-              <option value="payee">Payée</option>
-              <option value="en_retard">En retard</option>
-            </select>
-            <Button onClick={openCreate} className="hidden sm:flex"><Plus className="w-4 h-4" /> Nouvelle facture</Button>
+            <div className="flex items-center gap-2">
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
+                <option value="">Tous statuts</option>
+                <option value="brouillon">Brouillon</option>
+                <option value="envoyee">Envoyée</option>
+                <option value="partiellement_payee">Partiel</option>
+                <option value="payee">Payée</option>
+                <option value="en_retard">En retard</option>
+              </select>
+              <Button onClick={openCreate} className="flex-shrink-0"><Plus className="w-4 h-4" /> Nouvelle facture</Button>
+            </div>
           </div>
         </div>
 
