@@ -18,7 +18,7 @@ import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { PdfDownloadButton } from "@/components/ui/pdf-download-button";
 import { ActionMenu, ActionMenuItem } from "@/components/ui/action-menu";
 import {
-  Receipt, Plus, Search, Trash2, Pencil, Eye, Wallet, AlertCircle, CheckCircle, Clock, MessageCircle, Mail, Stamp,
+  Receipt, Plus, Search, Trash2, Pencil, Eye, Wallet, AlertCircle, CheckCircle, Clock, MessageCircle, Mail, Stamp, Printer,
 } from "lucide-react";
 
 const statusColors = {
@@ -231,7 +231,7 @@ export default function FacturesPage() {
     { key: "issue_date", label: "Date", render: (v) => <span className="text-slate-600">{v ? formatShortDate(v) : "—"}</span> },
     { key: "total", label: "Montant", align: "right", render: (v) => <span className="font-medium">{formatCurrency(v)}</span> },
     {
-      key: "status", label: "Statut",
+      key: "status", label: "Statut", compact: true,
       render: (v, row) => (
         <button
           onClick={(e) => { e.stopPropagation(); setStatusModal(row); }}
@@ -243,14 +243,14 @@ export default function FacturesPage() {
       ),
     },
     {
-      key: "share", label: "Partager",
+      key: "share", label: "", compact: true,
       render: (_, row) => (
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <button onClick={() => shareWhatsApp(row)} className="p-1.5 rounded-lg hover:bg-success-50 transition-colors" title="WhatsApp">
-            <MessageCircle className="w-4 h-4 text-success-500" />
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => shareWhatsApp(row)} className="p-1 rounded-lg hover:bg-success-50 transition-colors" title="WhatsApp">
+            <MessageCircle className="w-3.5 h-3.5 text-success-500" />
           </button>
-          <button onClick={() => shareEmailInv(row)} className="p-1.5 rounded-lg hover:bg-primary-50 transition-colors" title="Email">
-            <Mail className="w-4 h-4 text-primary-500" />
+          <button onClick={() => shareEmailInv(row)} className="p-1 rounded-lg hover:bg-primary-50 transition-colors" title="Email">
+            <Mail className="w-3.5 h-3.5 text-primary-500" />
           </button>
         </div>
       ),
@@ -261,6 +261,7 @@ export default function FacturesPage() {
         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           <button onClick={() => openDetail(row)} className="p-1.5 rounded-lg hover:bg-slate-100" title="Aperçu"><Eye className="w-4 h-4 text-slate-500" /></button>
           <PdfDownloadButton type="facture" data={row} variant="ghost" size="sm" label="" />
+          <PdfDownloadButton type="facture" data={row} action="print" variant="ghost" size="sm" label="" />
           <button onClick={() => openEdit(row)} className="p-1.5 rounded-lg hover:bg-slate-100" title="Modifier"><Pencil className="w-4 h-4 text-slate-500" /></button>
           {row.status !== "payee" && row.status !== "annulee" && (
             <button onClick={() => { setShowPayment(row); setPaymentForm({ ...paymentForm, amount: String(Number(row.total) - Number(row.paid_amount)) }); }} className="p-1.5 rounded-lg hover:bg-success-50" title="Paiement"><Wallet className="w-4 h-4 text-success-500" /></button>
@@ -501,6 +502,7 @@ export default function FacturesPage() {
 
             <div className="flex flex-wrap gap-3 pt-2">
               <PdfDownloadButton type="facture" data={showDetail} items={detailItems} label="Télécharger PDF" />
+              <PdfDownloadButton type="facture" data={showDetail} items={detailItems} action="print" label="Imprimer" />
               {showDetail.status !== "payee" && showDetail.status !== "annulee" && (
                 <Button size="sm" onClick={() => { setShowPayment(showDetail); setPaymentForm({ amount: String(Number(showDetail.total) - Number(showDetail.paid_amount)), payment_date: new Date().toISOString().split("T")[0], payment_method: "virement", reference: "" }); setShowDetail(null); }}>
                   <Wallet className="w-4 h-4" /> Enregistrer un paiement

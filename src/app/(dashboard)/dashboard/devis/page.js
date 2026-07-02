@@ -189,16 +189,16 @@ export default function DevisPage() {
     { key: "client", label: "Client", render: (_, r) => <span className="text-slate-600">{r.clients?.company_name || r.clients?.contact_name || "—"}</span> },
     { key: "issue_date", label: "Date", render: (v) => <span className="text-slate-600">{v ? formatShortDate(v) : "—"}</span> },
     { key: "total", label: "Montant TTC", align: "right", render: (v) => <span className="font-medium">{formatCurrency(v)}</span> },
-    { key: "status", label: "Statut", render: (v) => <Badge variant={statusColors[v]}>{statusLabels[v]}</Badge> },
+    { key: "status", label: "Statut", compact: true, render: (v) => <Badge variant={statusColors[v]}>{statusLabels[v]}</Badge> },
     {
-      key: "share", label: "Partager",
+      key: "share", label: "", compact: true,
       render: (_, row) => (
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <button onClick={() => shareWhatsApp(row)} className="p-1.5 rounded-lg hover:bg-success-50 transition-colors" title="WhatsApp">
-            <MessageCircle className="w-4 h-4 text-success-500" />
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => shareWhatsApp(row)} className="p-1 rounded-lg hover:bg-success-50 transition-colors" title="WhatsApp">
+            <MessageCircle className="w-3.5 h-3.5 text-success-500" />
           </button>
-          <button onClick={() => shareEmail(row)} className="p-1.5 rounded-lg hover:bg-primary-50 transition-colors" title="Email">
-            <Mail className="w-4 h-4 text-primary-500" />
+          <button onClick={() => shareEmail(row)} className="p-1 rounded-lg hover:bg-primary-50 transition-colors" title="Email">
+            <Mail className="w-3.5 h-3.5 text-primary-500" />
           </button>
         </div>
       ),
@@ -209,6 +209,7 @@ export default function DevisPage() {
         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           <button onClick={() => setShowDetail(row)} className="p-1.5 rounded-lg hover:bg-slate-100" title="Aperçu"><Eye className="w-4 h-4 text-slate-500" /></button>
           <PdfDownloadButton type="devis" data={row} variant="ghost" size="sm" label="" />
+          <PdfDownloadButton type="devis" data={row} action="print" variant="ghost" size="sm" label="" />
           <button onClick={() => openEdit(row)} className="p-1.5 rounded-lg hover:bg-slate-100" title="Modifier"><Pencil className="w-4 h-4 text-slate-500" /></button>
           <button onClick={() => setDeleteConfirm(row)} className="p-1.5 rounded-lg hover:bg-danger-50" title="Supprimer"><Trash2 className="w-4 h-4 text-slate-400 hover:text-danger-500" /></button>
         </div>
@@ -405,6 +406,7 @@ export default function DevisPage() {
             </div>
             <div className="flex flex-wrap gap-3 pt-4">
               <PdfDownloadButton type="devis" data={showDetail} label="Télécharger PDF" />
+              <PdfDownloadButton type="devis" data={showDetail} action="print" label="Imprimer" />
               <Button size="sm" variant="secondary" onClick={() => { openEdit(showDetail); setShowDetail(null); }}><Pencil className="w-4 h-4" /> Modifier</Button>
               {!showDetail.converted_to_invoice && (
                 <Button size="sm" onClick={() => convertToInvoice(showDetail)}><ArrowRightLeft className="w-4 h-4" /> Convertir en facture</Button>

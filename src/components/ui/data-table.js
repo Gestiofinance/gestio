@@ -20,7 +20,8 @@ export function DataTable({ columns, data, onRowClick, emptyMessage = "Aucune do
               <th
                 key={col.key}
                 className={cn(
-                  "text-left text-xs font-medium text-muted px-6 py-3 whitespace-nowrap",
+                  "text-left text-xs font-medium text-muted py-3 whitespace-nowrap",
+                  col.compact ? "px-2" : "px-6",
                   col.align === "right" && "text-right"
                 )}
               >
@@ -43,7 +44,8 @@ export function DataTable({ columns, data, onRowClick, emptyMessage = "Aucune do
                 <td
                   key={col.key}
                   className={cn(
-                    "px-6 py-3 text-sm",
+                    "py-3 text-sm",
+                    col.compact ? "px-2" : "px-6",
                     col.align === "right" && "text-right"
                   )}
                 >

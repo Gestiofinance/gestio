@@ -5,27 +5,23 @@ import { pdf } from "@react-pdf/renderer";
 import { DocumentPDF } from "@/lib/pdf/document-pdf";
 import { useSupabase } from "@/hooks/useSupabase";
 import { Button } from "./button";
-import { Download } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 
-export function PdfDownloadButton({ type, data, items, variant = "secondary", size = "sm", label }) {
+export function PdfDownloadButton({ type, data, items, variant = "secondary", size = "sm", label, action = "download" }) {
   const supabase = useSupabase();
   const [generating, setGenerating] = useState(false);
 
-  async function handleDownload() {
+  async function handleAction() {
     setGenerating(true);
     try {
-      // Use admin API to bypass RLS — ensures org info always loads
       const orgRes = await fetch("/api/settings/org");
       const { org } = orgRes.ok ? await orgRes.json() : { org: null };
       const template = org?.pdf_template || "moderne";
 
       let fullData = data;
       if (!data.clients) {
-        const select = type === "devis"
-          ? "*, clients(company_name, contact_name, email, phone, address, ninea)"
-          : "*, clients(company_name, contact_name, email, phone, address, ninea)";
         const table = type === "devis" ? "quotes" : "invoices";
-        const { data: fetched } = await supabase.from(table).select(select).eq("id", data.id).single();
+        const { data: fetched } = await supabase.from(table).select("*, clients(company_name, contact_name, email, phone, address, ninea)").eq("id", data.id).single();
         if (fetched) fullData = fetched;
       }
 
@@ -42,24 +38,32 @@ export function PdfDownloadButton({ type, data, items, variant = "secondary", si
       ).toBlob();
 
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      const number = type === "devis" ? data.quote_number : data.invoice_number;
-      link.href = url;
-      link.download = `${number || type}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+
+      if (action === "print") {
+        const win = window.open(url, "_blank");
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+      } else {
+        const number = type === "devis" ? data.quote_number : data.invoice_number;
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${number || type}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
     } catch (e) {
-      console.error("PDF generation error:", e);
+      console.error("PDF error:", e);
     }
     setGenerating(false);
   }
 
+  const isPrint = action === "print";
+
   return (
-    <Button variant={variant} size={size} onClick={handleDownload} disabled={generating}>
-      <Download className="w-4 h-4" />
-      {generating ? "..." : label !== undefined ? label : "Télécharger PDF"}
+    <Button variant={variant} size={size} onClick={handleAction} disabled={generating}>
+      {isPrint ? <Printer className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+      {generating ? "..." : label !== undefined ? label : isPrint ? "Imprimer" : "Télécharger PDF"}
     </Button>
   );
 }
