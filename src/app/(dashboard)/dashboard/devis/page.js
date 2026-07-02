@@ -220,22 +220,25 @@ export default function DevisPage() {
     <div>
       <Header title="Devis" />
       <div className="p-4 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h2 className="text-xl font-semibold text-foreground">Gestion des devis</h2>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white w-52">
-              <Search className="w-4 h-4 text-slate-400" />
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-foreground">Gestion des devis</h2>
+            <Button onClick={openCreate} className="sm:hidden" size="sm"><Plus className="w-4 h-4" /></Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white flex-1">
+              <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm w-full border-none outline-none" />
             </div>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
-              <option value="">Tous les statuts</option>
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 flex-shrink-0">
+              <option value="">Tous statuts</option>
               <option value="brouillon">Brouillon</option>
               <option value="envoye">Envoyé</option>
               <option value="accepte">Accepté</option>
               <option value="refuse">Refusé</option>
               <option value="expire">Expiré</option>
             </select>
-            <Button onClick={openCreate}><Plus className="w-4 h-4" /> Nouveau devis</Button>
+            <Button onClick={openCreate} className="hidden sm:flex"><Plus className="w-4 h-4" /> Nouveau devis</Button>
           </div>
         </div>
 
@@ -244,7 +247,54 @@ export default function DevisPage() {
         ) : quotes.length === 0 ? (
           <EmptyState icon={FileText} title="Aucun devis" description="Créez votre premier devis professionnel et envoyez-le à vos clients." actionLabel="Créer un devis" onAction={openCreate} />
         ) : (
-          <Card><DataTable columns={columns} data={filtered} onRowClick={(r) => setShowDetail(r)} emptyMessage="Aucun devis trouvé" /></Card>
+          <>
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-3">
+              {filtered.length === 0 ? (
+                <p className="text-center py-8 text-muted text-sm">Aucun devis trouvé</p>
+              ) : filtered.map((q) => (
+                <div key={q.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="p-4 cursor-pointer active:bg-slate-50" onClick={() => setShowDetail(q)}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground text-sm">{q.quote_number}</p>
+                        <p className="text-slate-500 text-sm mt-0.5 truncate">{q.clients?.company_name || q.clients?.contact_name || "—"}</p>
+                      </div>
+                      <Badge variant={statusColors[q.status]} className="flex-shrink-0">{statusLabels[q.status]}</Badge>
+                    </div>
+                    <div className="flex items-end justify-between mt-3">
+                      <p className="text-xs text-slate-400">{q.issue_date ? formatShortDate(q.issue_date) : "—"}</p>
+                      <p className="font-bold text-xl text-foreground">{formatCurrency(q.total)}</p>
+                    </div>
+                    {q.expiry_date && (
+                      <p className="text-xs text-slate-400 mt-1">Exp. {formatShortDate(q.expiry_date)}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                    <Button size="sm" variant="secondary" className="flex-1 text-xs" onClick={() => setShowDetail(q)}>
+                      <Eye className="w-3.5 h-3.5" /> Voir
+                    </Button>
+                    <PdfDownloadButton type="devis" data={q} variant="secondary" size="sm" label="" />
+                    {q.status === "accepte" && !q.converted_to_invoice && (
+                      <button onClick={() => convertToInvoice(q)} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-primary-50" title="Convertir en facture">
+                        <ArrowRightLeft className="w-4 h-4 text-primary-500" />
+                      </button>
+                    )}
+                    <button onClick={() => openEdit(q)} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100" title="Modifier">
+                      <Pencil className="w-4 h-4 text-slate-500" />
+                    </button>
+                    <button onClick={() => setDeleteConfirm(q)} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-danger-50" title="Supprimer">
+                      <Trash2 className="w-4 h-4 text-slate-400" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <Card className="hidden sm:block">
+              <DataTable columns={columns} data={filtered} onRowClick={(r) => setShowDetail(r)} emptyMessage="Aucun devis trouvé" />
+            </Card>
+          </>
         )}
       </div>
 

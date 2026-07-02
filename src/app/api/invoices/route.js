@@ -79,7 +79,11 @@ export async function PUT(request) {
     if (!id) return NextResponse.json({ error: "id manquant" }, { status: 400 });
 
     await admin.from("invoices").update(invoiceData).eq("id", id);
-    await admin.from("invoice_items").delete().eq("invoice_id", id);
+
+    // Only touch items if lines were explicitly provided
+    if (lines !== undefined) {
+      await admin.from("invoice_items").delete().eq("invoice_id", id);
+    }
 
     if (lines?.length) {
       await admin.from("invoice_items").insert(

@@ -72,7 +72,10 @@ export async function PUT(request) {
     if (!id) return NextResponse.json({ error: "id manquant" }, { status: 400 });
 
     await admin.from("quotes").update(quoteData).eq("id", id);
-    await admin.from("quote_items").delete().eq("quote_id", id);
+
+    if (lines !== undefined) {
+      await admin.from("quote_items").delete().eq("quote_id", id);
+    }
 
     if (lines?.length) {
       await admin.from("quote_items").insert(

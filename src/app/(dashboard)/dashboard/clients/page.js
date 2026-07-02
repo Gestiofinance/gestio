@@ -15,18 +15,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCrud } from "@/hooks/useSupabase";
 import {
-  Users,
-  Plus,
-  Search,
-  Building2,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  MoreVertical,
-  Pencil,
-  Trash2,
-  Eye,
+  Users, Plus, Search, Building2, User, Mail, Phone, MapPin, MoreVertical, Pencil, Trash2, Eye,
 } from "lucide-react";
 
 const statusOptions = [
@@ -195,8 +184,8 @@ export default function ClientsPage() {
       <Header title="Clients" />
       <div className="p-4 sm:p-6 space-y-4">
         {/* Top bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
             <Tabs
               tabs={[
                 { value: "liste", label: "Liste", count: clients.length },
@@ -205,24 +194,25 @@ export default function ClientsPage() {
               activeTab={view}
               onChange={setView}
             />
+            <Button onClick={openCreate} className="sm:hidden" size="sm"><Plus className="w-4 h-4" /></Button>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white w-56">
-              <Search className="w-4 h-4 text-slate-400" />
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white flex-1">
+              <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm w-full border-none outline-none" />
             </div>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
-              <option value="">Tous les statuts</option>
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-2 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 flex-shrink-0">
+              <option value="">Statut</option>
               <option value="actif">Actif</option>
               <option value="prospect">Prospect</option>
               <option value="inactif">Inactif</option>
             </select>
-            <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
+            <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="hidden sm:block px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
               <option value="">Tous les types</option>
               <option value="entreprise">Entreprise</option>
               <option value="particulier">Particulier</option>
             </select>
-            <Button onClick={openCreate}>
+            <Button onClick={openCreate} className="hidden sm:flex">
               <Plus className="w-4 h-4" /> Nouveau client
             </Button>
           </div>
@@ -240,14 +230,62 @@ export default function ClientsPage() {
             onAction={openCreate}
           />
         ) : view === "liste" ? (
-          <Card>
-            <DataTable
-              columns={columns}
-              data={filteredClients}
-              onRowClick={(row) => setShowDetail(row)}
-              emptyMessage="Aucun client trouvé"
-            />
-          </Card>
+          <>
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-3">
+              {filteredClients.length === 0 ? (
+                <p className="text-center py-8 text-muted text-sm">Aucun client trouvé</p>
+              ) : filteredClients.map((client) => (
+                <div key={client.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="p-4 cursor-pointer active:bg-slate-50" onClick={() => setShowDetail(client)}>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
+                        {client.type === "entreprise" ? <Building2 className="w-5 h-5 text-primary-500" /> : <User className="w-5 h-5 text-primary-500" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground text-sm truncate">{client.company_name || client.contact_name}</p>
+                            {client.company_name && <p className="text-xs text-muted">{client.contact_name}</p>}
+                          </div>
+                          <Badge variant={statusColors[client.status]} className="flex-shrink-0 text-xs">{client.status}</Badge>
+                        </div>
+                        <div className="mt-2 space-y-0.5">
+                          {client.email && <p className="text-xs text-slate-500 truncate">{client.email}</p>}
+                          {client.phone && <p className="text-xs text-slate-500">{client.phone}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                    <Button size="sm" variant="secondary" className="flex-1 text-xs" onClick={() => setShowDetail(client)}>
+                      <Eye className="w-3.5 h-3.5" /> Voir
+                    </Button>
+                    {client.email && (
+                      <a href={`mailto:${client.email}`} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-primary-50" title="Email">
+                        <Mail className="w-4 h-4 text-primary-500" />
+                      </a>
+                    )}
+                    {client.phone && (
+                      <a href={`tel:${client.phone}`} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-success-50" title="Appeler">
+                        <Phone className="w-4 h-4 text-success-500" />
+                      </a>
+                    )}
+                    <button onClick={() => openEdit(client)} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100" title="Modifier">
+                      <Pencil className="w-4 h-4 text-slate-500" />
+                    </button>
+                    <button onClick={() => setDeleteConfirm(client)} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-danger-50" title="Supprimer">
+                      <Trash2 className="w-4 h-4 text-slate-400" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <Card className="hidden sm:block">
+              <DataTable columns={columns} data={filteredClients} onRowClick={(row) => setShowDetail(row)} emptyMessage="Aucun client trouvé" />
+            </Card>
+          </>
         ) : (
           <div className="grid md:grid-cols-3 gap-4">
             {kanbanStatuses.map((status) => (

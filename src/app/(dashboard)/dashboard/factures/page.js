@@ -59,6 +59,7 @@ export default function FacturesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
+  const [statusModal, setStatusModal] = useState(null); // invoice being changed
   const [detailItems, setDetailItems] = useState([]);
   const [detailPayments, setDetailPayments] = useState([]);
 
@@ -191,6 +192,19 @@ export default function FacturesPage() {
     setDeleteConfirm(null); setShowDetail(null);
   }
 
+  async function handleStatusChange(invoiceId, newStatus) {
+    try {
+      const res = await fetch("/api/invoices", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: invoiceId, status: newStatus }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      await fetchAll({ select: "*, clients(company_name, contact_name, email, phone)" });
+      setStatusModal(null);
+    } catch (e) { console.error(e); }
+  }
+
   function updateLine(index, field, value) {
     const updated = [...lines];
     updated[index] = { ...updated[index], [field]: field === "description" ? value : parseFloat(value) || 0 };
@@ -216,7 +230,18 @@ export default function FacturesPage() {
     { key: "client", label: "Client", render: (_, r) => <span className="text-slate-600">{r.clients?.company_name || r.clients?.contact_name || "—"}</span> },
     { key: "issue_date", label: "Date", render: (v) => <span className="text-slate-600">{v ? formatShortDate(v) : "—"}</span> },
     { key: "total", label: "Montant", align: "right", render: (v) => <span className="font-medium">{formatCurrency(v)}</span> },
-    { key: "status", label: "Statut", render: (v) => <Badge variant={statusColors[v]}>{statusLabels[v]}</Badge> },
+    {
+      key: "status", label: "Statut",
+      render: (v, row) => (
+        <button
+          onClick={(e) => { e.stopPropagation(); setStatusModal(row); }}
+          className="cursor-pointer hover:opacity-80 transition-opacity"
+          title="Changer le statut"
+        >
+          <Badge variant={statusColors[v]}>{statusLabels[v]}</Badge>
+        </button>
+      ),
+    },
     {
       key: "share", label: "Partager",
       render: (_, row) => (
@@ -259,22 +284,25 @@ export default function FacturesPage() {
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h2 className="text-xl font-semibold text-foreground">Toutes les factures</h2>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white w-52">
-              <Search className="w-4 h-4 text-slate-400" />
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-foreground">Toutes les factures</h2>
+            <Button onClick={openCreate} className="sm:hidden" size="sm"><Plus className="w-4 h-4" /></Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white flex-1">
+              <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm w-full border-none outline-none" />
             </div>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
-              <option value="">Tous les statuts</option>
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 flex-shrink-0">
+              <option value="">Tous statuts</option>
               <option value="brouillon">Brouillon</option>
               <option value="envoyee">Envoyée</option>
               <option value="partiellement_payee">Partiel</option>
               <option value="payee">Payée</option>
               <option value="en_retard">En retard</option>
             </select>
-            <Button onClick={openCreate}><Plus className="w-4 h-4" /> Nouvelle facture</Button>
+            <Button onClick={openCreate} className="hidden sm:flex"><Plus className="w-4 h-4" /> Nouvelle facture</Button>
           </div>
         </div>
 
@@ -283,7 +311,56 @@ export default function FacturesPage() {
         ) : invoices.length === 0 ? (
           <EmptyState icon={Receipt} title="Aucune facture" description="Créez votre première facture ou convertissez un devis accepté." actionLabel="Créer une facture" onAction={openCreate} />
         ) : (
-          <Card><DataTable columns={columns} data={filtered} onRowClick={(r) => openDetail(r)} emptyMessage="Aucune facture trouvée" /></Card>
+          <>
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-3">
+              {filtered.length === 0 ? (
+                <p className="text-center py-8 text-muted text-sm">Aucune facture trouvée</p>
+              ) : filtered.map((inv) => (
+                <div key={inv.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="p-4 cursor-pointer active:bg-slate-50" onClick={() => openDetail(inv)}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground text-sm">{inv.invoice_number}</p>
+                        <p className="text-slate-500 text-sm mt-0.5 truncate">{inv.clients?.company_name || inv.clients?.contact_name || "—"}</p>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); setStatusModal(inv); }} className="flex-shrink-0 hover:opacity-80">
+                        <Badge variant={statusColors[inv.status]}>{statusLabels[inv.status]}</Badge>
+                      </button>
+                    </div>
+                    <div className="flex items-end justify-between mt-3">
+                      <p className="text-xs text-slate-400">{inv.issue_date ? formatShortDate(inv.issue_date) : "—"}</p>
+                      <p className="font-bold text-xl text-foreground">{formatCurrency(inv.total)}</p>
+                    </div>
+                    {inv.paid_amount > 0 && inv.status !== "payee" && (
+                      <div className="mt-2 text-xs text-success-600">Payé : {formatCurrency(inv.paid_amount)} — Reste : {formatCurrency(Number(inv.total) - Number(inv.paid_amount))}</div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                    <Button size="sm" variant="secondary" className="flex-1 text-xs" onClick={() => openDetail(inv)}>
+                      <Eye className="w-3.5 h-3.5" /> Voir
+                    </Button>
+                    <PdfDownloadButton type="facture" data={inv} variant="secondary" size="sm" label="" />
+                    {inv.status !== "payee" && inv.status !== "annulee" && (
+                      <button onClick={() => { setShowPayment(inv); setPaymentForm({ ...paymentForm, amount: String(Number(inv.total) - Number(inv.paid_amount)) }); }} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-success-50" title="Paiement">
+                        <Wallet className="w-4 h-4 text-success-500" />
+                      </button>
+                    )}
+                    <button onClick={() => openEdit(inv)} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100" title="Modifier">
+                      <Pencil className="w-4 h-4 text-slate-500" />
+                    </button>
+                    <button onClick={() => setDeleteConfirm(inv)} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-danger-50" title="Supprimer">
+                      <Trash2 className="w-4 h-4 text-slate-400" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <Card className="hidden sm:block">
+              <DataTable columns={columns} data={filtered} onRowClick={(r) => openDetail(r)} emptyMessage="Aucune facture trouvée" />
+            </Card>
+          </>
         )}
       </div>
 
@@ -451,6 +528,49 @@ export default function FacturesPage() {
             <Button onClick={handlePayment} disabled={saving || !paymentForm.amount}>{saving ? "Enregistrement..." : "Enregistrer"}</Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Inline Status Change Modal */}
+      <Modal open={!!statusModal} onClose={() => setStatusModal(null)} title="Changer le statut" size="sm">
+        {statusModal && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted">
+              Facture <span className="font-medium text-foreground">{statusModal.invoice_number}</span> — statut actuel :&nbsp;
+              <Badge variant={statusColors[statusModal.status]}>{statusLabels[statusModal.status]}</Badge>
+            </p>
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {statusOptions.map((opt) => {
+                const isCurrent = statusModal.status === opt.value;
+                const colorMap = {
+                  brouillon: "bg-slate-100 text-slate-700 border-slate-300",
+                  envoyee: "bg-primary-50 text-primary-700 border-primary-300",
+                  partiellement_payee: "bg-amber-50 text-amber-700 border-amber-300",
+                  payee: "bg-green-50 text-green-700 border-green-300",
+                  en_retard: "bg-red-50 text-red-700 border-red-300",
+                  annulee: "bg-slate-100 text-slate-500 border-slate-200",
+                };
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => !isCurrent && handleStatusChange(statusModal.id, opt.value)}
+                    disabled={isCurrent}
+                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium text-left transition-all ${
+                      isCurrent
+                        ? `${colorMap[opt.value]} ring-2 ring-offset-1 ring-current opacity-100 cursor-default`
+                        : `${colorMap[opt.value]} hover:shadow-sm hover:scale-[1.02] opacity-70 hover:opacity-100`
+                    }`}
+                  >
+                    {isCurrent && <span className="mr-1">✓</span>}
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button variant="secondary" size="sm" onClick={() => setStatusModal(null)}>Fermer</Button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       <ConfirmDialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={handleDelete}
