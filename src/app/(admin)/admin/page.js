@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSupabase } from "@/hooks/useSupabase";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
-import { getPlanLabel, getCycleLabel } from "@/lib/plans";
+import { getPlanLabel } from "@/lib/plans";
 import {
-  Building2, Users, CreditCard, TrendingUp, CheckCircle, AlertCircle,
-  Clock, Activity, ArrowUpRight,
+  Building2, CreditCard, TrendingUp, Clock,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -23,6 +21,12 @@ const statusColors = {
 const statusLabels = {
   trial: "Essai", active: "Actif", past_due: "En retard",
   cancelled: "Annulé", expired: "Expiré",
+};
+
+const planColors = {
+  standard: "text-primary-400 bg-primary-400/10",
+  pro: "text-violet-400 bg-violet-400/10",
+  business: "text-success-400 bg-success-400/10",
 };
 
 function AdminStatCard({ title, value, sub, icon: Icon, color = "primary" }) {
@@ -49,7 +53,6 @@ function AdminStatCard({ title, value, sub, icon: Icon, color = "primary" }) {
 }
 
 export default function AdminDashboardPage() {
-  const supabase = useSupabase();
   const [stats, setStats] = useState({ orgs: 0, active: 0, trial: 0, mrr: 0 });
   const [recentOrgs, setRecentOrgs] = useState([]);
   const [revenueChart, setRevenueChart] = useState([]);
@@ -59,66 +62,71 @@ export default function AdminDashboardPage() {
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
-    const [
-      { data: orgs },
-      { data: subs },
-      { data: payments },
-    ] = await Promise.all([
-      supabase.from("organizations").select("id, name, created_at").order("created_at", { ascending: false }),
-      supabase.from("subscriptions").select("*").order("created_at", { ascending: false }),
-      supabase.from("subscription_payments").select("*, organizations(name)").eq("status", "completed").order("paid_at", { ascending: false }),
-    ]);
+    try {
+      const [usersRes, subsRes] = await Promise.all([
+        fetch("/api/admin/users"),
+        fetch("/api/admin/subscriptions"),
+      ]);
 
-    const now = new Date();
-    const thisMonth = now.getMonth();
-    const thisYear = now.getFullYear();
+      const [usersData, subsData] = await Promise.all([
+        usersRes.json(),
+        subsRes.json(),
+      ]);
 
-    const active = (subs || []).filter((s) => s.status === "active");
-    const trial = (subs || []).filter((s) => s.status === "trial");
-    const mrr = active.reduce((acc, s) => {
-      if (s.billing_cycle === "annual") return acc + Math.round(s.amount / 12);
-      if (s.billing_cycle === "quarterly") return acc + Math.round(s.amount / 3);
-      return acc + s.amount;
-    }, 0);
+      const orgs = usersData.organizations || [];
+      const subs = subsData.subscriptions || [];
+      const payments = subsData.payments || [];
 
-    const monthRevenue = (payments || []).filter((p) => {
-      const d = new Date(p.paid_at);
-      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
-    }).reduce((acc, p) => acc + p.amount, 0);
+      const now = new Date();
+      const thisMonth = now.getMonth();
+      const thisYear = now.getFullYear();
 
-    setStats({ orgs: (orgs || []).length, active: active.length, trial: trial.length, mrr });
-    setRecentOrgs((orgs || []).slice(0, 5).map((org) => {
-      const sub = (subs || []).find((s) => s.organization_id === org.id);
-      return { ...org, sub };
-    }));
-    setRecentPayments((payments || []).slice(0, 8));
+      const active = subs.filter((s) => s.status === "active");
+      const trial = subs.filter((s) => s.status === "trial");
+      const mrr = active.reduce((acc, s) => {
+        if (s.billing_cycle === "annual") return acc + Math.round(s.amount / 12);
+        if (s.billing_cycle === "quarterly") return acc + Math.round(s.amount / 3);
+        return acc + (s.amount || 0);
+      }, 0);
 
-    // Build 6-month revenue chart
-    const chart = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(thisYear, thisMonth - i, 1);
-      const m = d.getMonth();
-      const y = d.getFullYear();
-      const label = d.toLocaleDateString("fr-FR", { month: "short" });
-      const rev = (payments || []).filter((p) => {
-        const pd = new Date(p.paid_at);
-        return pd.getMonth() === m && pd.getFullYear() === y;
-      }).reduce((acc, p) => acc + p.amount, 0);
-      chart.push({ mois: label, revenus: rev });
+      setStats({ orgs: orgs.length, active: active.length, trial: trial.length, mrr });
+
+      setRecentOrgs(orgs.slice(0, 5).map((org) => {
+        const sub = subs.find((s) => s.organization_id === org.id);
+        return { ...org, sub };
+      }));
+
+      const completedPayments = payments.filter((p) => p.status === "completed");
+      setRecentPayments(completedPayments.slice(0, 8));
+
+      // 6-month revenue chart from completed payments
+      const chart = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(thisYear, thisMonth - i, 1);
+        const m = d.getMonth();
+        const y = d.getFullYear();
+        const label = d.toLocaleDateString("fr-FR", { month: "short" });
+        const rev = completedPayments.filter((p) => {
+          const pd = new Date(p.paid_at || p.created_at);
+          return pd.getMonth() === m && pd.getFullYear() === y;
+        }).reduce((acc, p) => acc + (p.amount || 0), 0);
+        chart.push({ mois: label, revenus: rev });
+      }
+      setRevenueChart(chart);
+    } catch (e) {
+      console.error("Admin dashboard error:", e);
+    } finally {
+      setLoading(false);
     }
-    setRevenueChart(chart);
-    setLoading(false);
   }
 
   return (
     <div className="p-6 sm:p-8 space-y-8">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">Tableau de bord Admin</h1>
         <p className="text-slate-400 text-sm mt-1">Vue globale de la plateforme Gestio</p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <AdminStatCard title="Organisations" value={stats.orgs} sub="comptes enregistrés" icon={Building2} color="primary" />
         <AdminStatCard title="Abonnements actifs" value={stats.active} sub={`${stats.trial} en essai`} icon={CreditCard} color="success" />
@@ -127,7 +135,6 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Revenue chart */}
         <div className="lg:col-span-2 bg-slate-800 rounded-2xl border border-slate-700 p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-semibold text-white">Revenus des abonnements</h2>
@@ -144,7 +151,7 @@ export default function AdminDashboardPage() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis dataKey="mois" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => v > 0 ? `${v / 1000}k` : "0"} />
+                <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => v > 0 ? `${(v / 1000).toFixed(0)}k` : "0"} />
                 <Tooltip
                   contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: "8px", color: "#fff" }}
                   formatter={(v) => [formatCurrency(v), "Revenus"]}
@@ -155,7 +162,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Recent payments */}
         <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
           <h2 className="font-semibold text-white mb-4">Derniers paiements</h2>
           <div className="space-y-3">
@@ -174,7 +180,6 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Recent organizations */}
       <div className="bg-slate-800 rounded-2xl border border-slate-700">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
           <h2 className="font-semibold text-white">Dernières inscriptions</h2>
@@ -192,6 +197,8 @@ export default function AdminDashboardPage() {
             <tbody>
               {loading ? (
                 <tr><td colSpan={4} className="text-center py-8 text-slate-500 text-sm">Chargement...</td></tr>
+              ) : recentOrgs.length === 0 ? (
+                <tr><td colSpan={4} className="text-center py-8 text-slate-500 text-sm">Aucune organisation</td></tr>
               ) : recentOrgs.map((org) => (
                 <tr key={org.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
                   <td className="px-6 py-3">
@@ -203,10 +210,18 @@ export default function AdminDashboardPage() {
                     </div>
                   </td>
                   <td className="px-6 py-3 text-sm text-slate-400">{formatShortDate(org.created_at)}</td>
-                  <td className="px-6 py-3 text-sm text-slate-300">{org.sub ? getPlanLabel(org.sub.plan_id) : "—"}</td>
                   <td className="px-6 py-3">
                     {org.sub ? (
-                      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[org.sub.status] || "text-slate-400"}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${planColors[org.sub.plan_id] || "text-slate-400 bg-slate-700"}`}>
+                        {getPlanLabel(org.sub.plan_id)}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-500">—</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-3">
+                    {org.sub ? (
+                      <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[org.sub.status] || "text-slate-400 bg-slate-700"}`}>
                         {statusLabels[org.sub.status] || org.sub.status}
                       </span>
                     ) : (

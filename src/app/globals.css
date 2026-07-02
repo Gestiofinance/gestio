@@ -27,16 +27,21 @@
   --color-slate-900: #0F172A;
 
   --color-success-50: #f0fdf4;
+  --color-success-400: #4ade80;
   --color-success-500: #22c55e;
   --color-success-600: #16a34a;
 
   --color-warning-50: #fffbeb;
+  --color-warning-400: #fbbf24;
   --color-warning-500: #f59e0b;
   --color-warning-600: #d97706;
 
   --color-danger-50: #fef2f2;
+  --color-danger-400: #f87171;
   --color-danger-500: #ef4444;
   --color-danger-600: #dc2626;
+
+  --color-violet-400: #a78bfa;
 
   --color-background: #F8FAFC;
   --color-foreground: #0F172A;

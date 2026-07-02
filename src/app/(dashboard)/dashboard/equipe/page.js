@@ -82,7 +82,7 @@ export default function EquipePage() {
       const json = await res.json();
       setSubscription(json.subscription ?? null);
 
-      const plan = json.subscription?.plan;
+      const plan = json.subscription?.plan_id;
       const status = json.subscription?.status;
       const isPro = plan === "pro" || plan === "business" || status === "trial";
 
@@ -155,7 +155,7 @@ export default function EquipePage() {
     );
   }
 
-  const plan = subscription?.plan;
+  const plan = subscription?.plan_id;
   const status = subscription?.status;
   const isPro = plan === "pro" || plan === "business" || status === "trial";
 
