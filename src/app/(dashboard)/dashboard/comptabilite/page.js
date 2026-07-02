@@ -203,6 +203,7 @@ export default function ComptabilitePage() {
 
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Tabs
+            wrap
             tabs={[{ value: "vue", label: "Vue d'ensemble" }, { value: "recettes", label: "Recettes", count: revenues.length }, { value: "depenses", label: "Dépenses", count: expenses.length }, { value: "rapports", label: "Rapports" }]}
             activeTab={tab} onChange={setTab}
           />

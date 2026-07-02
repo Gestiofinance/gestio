@@ -182,6 +182,8 @@ export default function ParametresPage() {
       <Header title="Paramètres" />
       <div className="p-4 sm:p-6 space-y-6">
         <Tabs
+          wrap
+          mobileGrid={3}
           tabs={[
             { value: "entreprise", label: "Entreprise" },
             { value: "facturation", label: "Facturation" },

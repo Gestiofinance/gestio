@@ -178,9 +178,9 @@ export default function PlanningPage() {
       <Header title="Planning" />
       <div className="p-4 sm:p-6 space-y-6">
         {/* Top bar */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <p className="text-sm text-muted">Visualisez vos tâches, échéances et projets sur le calendrier.</p>
-          <Button onClick={() => openCreateForDate(null)}>
+          <Button onClick={() => openCreateForDate(null)} className="w-full sm:w-auto flex-shrink-0">
             <Plus className="w-4 h-4" /> Ajouter au planning
           </Button>
         </div>
@@ -189,20 +189,20 @@ export default function PlanningPage() {
           {/* Calendar */}
           <div className="lg:col-span-3">
             <Card>
-              <div className="p-4 flex items-center justify-between border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-slate-100"><ChevronLeft className="w-5 h-5 text-slate-500" /></button>
-                  <h2 className="text-lg font-semibold text-foreground min-w-[200px] text-center">
+              <div className="px-3 py-3 sm:p-4 flex items-center justify-between gap-2 border-b border-slate-100">
+                <div className="flex items-center gap-1 sm:gap-3">
+                  <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-slate-100"><ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" /></button>
+                  <h2 className="text-sm sm:text-lg font-semibold text-foreground min-w-[110px] sm:min-w-[200px] text-center">
                     {MONTHS[month]} {year}
                   </h2>
-                  <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-slate-100"><ChevronRight className="w-5 h-5 text-slate-500" /></button>
+                  <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-slate-100"><ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" /></button>
                 </div>
-                <Button variant="secondary" size="sm" onClick={goToday}>Aujourd&apos;hui</Button>
+                <Button variant="secondary" size="sm" onClick={goToday} className="text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0">Aujourd&apos;hui</Button>
               </div>
-              <div className="p-4">
-                <div className="grid grid-cols-7 mb-2">
+              <div className="p-1 sm:p-4">
+                <div className="grid grid-cols-7 mb-1">
                   {DAYS.map((d) => (
-                    <div key={d} className="text-center text-xs font-medium text-muted py-2">{d}</div>
+                    <div key={d} className="text-center text-[10px] sm:text-xs font-medium text-muted py-1.5">{d}</div>
                   ))}
                 </div>
                 <div className="grid grid-cols-7">
@@ -238,16 +238,25 @@ export default function PlanningPage() {
                       <div
                         key={i}
                         onClick={() => hasEvents ? handleDateClick(date, events) : openCreateForDate(date)}
-                        className={`min-h-[90px] border p-1 cursor-pointer transition-all rounded-lg m-0.5 ${cellBorder} ${
+                        className={`min-h-[52px] sm:min-h-[90px] border p-0.5 sm:p-1 cursor-pointer transition-all rounded-md sm:rounded-lg m-0.5 ${cellBorder} ${
                           !isCurrentMonth ? "bg-slate-50/50" : hasEvents ? `${cellBg} hover:shadow-md` : "hover:bg-slate-50"
                         }`}
                       >
-                        <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
+                        <div className={`text-[10px] sm:text-xs font-medium mb-0.5 sm:mb-1 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full ${
                           isToday(date) ? "gradient-bg text-white" : isCurrentMonth ? "text-foreground" : "text-slate-300"
                         }`}>
                           {date.getDate()}
                         </div>
-                        <div className="space-y-0.5">
+                        {/* Mobile: colored dot only; Desktop: text labels */}
+                        {hasEvents && (
+                          <div className="sm:hidden flex flex-col gap-0.5">
+                            {events.slice(0, 2).map((ev, j) => (
+                              <ev.icon key={j} className={`w-2.5 h-2.5 ${ev.color}`} />
+                            ))}
+                            {events.length > 2 && <span className={`text-[8px] leading-none ${textColor}`}>+{events.length - 2}</span>}
+                          </div>
+                        )}
+                        <div className="hidden sm:block space-y-0.5">
                           {events.slice(0, 3).map((ev, j) => (
                             <div key={j} className={`flex items-center gap-1 text-[10px] truncate ${textColor}`}>
                               <ev.icon className={`w-3 h-3 shrink-0 ${ev.color}`} />
