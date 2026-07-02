@@ -4,19 +4,19 @@ import { useState } from "react";
 import { pdf } from "@react-pdf/renderer";
 import { DocumentPDF } from "@/lib/pdf/document-pdf";
 import { useSupabase } from "@/hooks/useSupabase";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "./button";
 import { Download } from "lucide-react";
 
 export function PdfDownloadButton({ type, data, items, variant = "secondary", size = "sm", label }) {
-  const { organization } = useAuth();
   const supabase = useSupabase();
   const [generating, setGenerating] = useState(false);
 
   async function handleDownload() {
     setGenerating(true);
     try {
-      const { data: org } = await supabase.from("organizations").select("*").single();
+      // Use admin API to bypass RLS — ensures org info always loads
+      const orgRes = await fetch("/api/settings/org");
+      const { org } = orgRes.ok ? await orgRes.json() : { org: null };
       const template = org?.pdf_template || "moderne";
 
       let fullData = data;
