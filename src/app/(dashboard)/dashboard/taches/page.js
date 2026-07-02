@@ -186,25 +186,6 @@ function StickyCard({ task, userName, onEdit, onDelete, onToggle }) {
           )}
         </div>
 
-        {/* ── Coin plié "papier" bas-droite ── */}
-        {/* Ombre portée sous le pli */}
-        <div
-          className="absolute bottom-0 right-0"
-          style={{
-            width: "48px",
-            height: "48px",
-            background: `linear-gradient(225deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.13) 40%, rgba(0,0,0,0.13) 45%, transparent 45%)`,
-          }}
-        />
-        {/* Feuille pliée (blanc cassé) */}
-        <div
-          className="absolute bottom-0 right-0"
-          style={{
-            width: "48px",
-            height: "48px",
-            background: `linear-gradient(225deg, #ffffff 38%, rgba(0,0,0,0.10) 38%, rgba(0,0,0,0.10) 44%, ${p.bg} 44%)`,
-          }}
-        />
       </div>
     </div>
   );
