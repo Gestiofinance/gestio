@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import ContactForm from "@/components/landing/ContactForm";
 import FaqAccordion from "@/components/landing/FaqAccordion";
-import HeroEmailForm from "@/components/landing/HeroEmailForm";
 import Header from "@/components/landing/Header";
 import {
   ArrowRight, Users, Receipt, FolderKanban, PieChart, Calendar,
@@ -98,11 +97,11 @@ export default function HomePage() {
       ══════════════════════════════════════════ */}
       <div className="relative pb-32" style={{
         background: `
-          radial-gradient(ellipse 65% 55% at 8% 25%, rgba(99,102,241,0.45) 0%, transparent 70%),
-          radial-gradient(ellipse 55% 50% at 88% 15%, rgba(6,182,212,0.40) 0%, transparent 70%),
-          radial-gradient(ellipse 50% 60% at 55% 92%, rgba(139,92,246,0.30) 0%, transparent 70%),
-          radial-gradient(ellipse 40% 35% at 25% 70%, rgba(167,139,250,0.25) 0%, transparent 70%),
-          linear-gradient(160deg, #818cf8 0%, #a5b4fc 25%, #67e8f9 60%, #c4b5fd 100%)
+          radial-gradient(ellipse 65% 55% at 8% 25%, rgba(67,56,202,0.65) 0%, transparent 70%),
+          radial-gradient(ellipse 55% 50% at 88% 15%, rgba(6,148,162,0.55) 0%, transparent 70%),
+          radial-gradient(ellipse 50% 60% at 55% 92%, rgba(109,40,217,0.45) 0%, transparent 70%),
+          radial-gradient(ellipse 40% 35% at 25% 70%, rgba(124,58,237,0.35) 0%, transparent 70%),
+          linear-gradient(160deg, #4338ca 0%, #6366f1 30%, #0891b2 65%, #7c3aed 100%)
         `,
       }}>
 
@@ -114,12 +113,6 @@ export default function HomePage() {
         {/* ── HERO CONTENT — pt accounts for fixed header ── */}
         <section className="relative z-10 pt-44 pb-10 px-6 text-center">
           <div className="max-w-3xl mx-auto">
-
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-semibold mb-8 border border-white/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-              Conçu pour les entrepreneurs africains · Essai 7 jours gratuit
-            </div>
 
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-extrabold text-white leading-[1.1] tracking-tight mb-6 drop-shadow-sm">
@@ -133,10 +126,17 @@ export default function HomePage() {
               Gestio réunit CRM, projets, devis, facturation et comptabilité dans une plateforme 100% en français, pensée pour le marché africain.
             </p>
 
-            {/* Email input + CTA pill */}
-            <HeroEmailForm />
+            {/* CTA button */}
+            <Link
+              href="/inscription"
+              className="inline-flex items-center gap-2 bg-white font-bold px-10 py-4 rounded-full text-base shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all"
+              style={{ color: "#5E5CE6" }}
+            >
+              Commencer maintenant
+              <ArrowRight className="w-4 h-4" />
+            </Link>
 
-            <p className="mt-4 text-xs text-white/60">
+            <p className="mt-5 text-xs text-white/60">
               Aucune carte bancaire requise · Annulation à tout moment
             </p>
           </div>
@@ -149,12 +149,8 @@ export default function HomePage() {
               <div key={card.stepLabel}
                 className="bg-white rounded-2xl p-5 shadow-xl border border-slate-100/80 flex flex-col gap-3 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
 
-                {/* Top: step badge + icon visual */}
-                <div className="flex items-start justify-between">
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${card.badgeBg} ${card.badgeColor}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${card.dot}`} />
-                    {card.stepLabel}
-                  </span>
+                {/* Top: icon */}
+                <div className="flex items-start justify-end">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${card.iconBg}`}>
                     <card.icon className={`w-4.5 h-4.5 ${card.iconColor}`} strokeWidth={2} />
                   </div>
