@@ -95,7 +95,7 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════
           HERO WRAPPER — gradient mesh background
       ══════════════════════════════════════════ */}
-      <div className="relative pb-32" style={{
+      <div className="relative pb-10 lg:pb-32" style={{
         background: `
           radial-gradient(ellipse 65% 55% at 8% 25%, rgba(67,56,202,0.65) 0%, transparent 70%),
           radial-gradient(ellipse 55% 50% at 88% 15%, rgba(6,148,162,0.55) 0%, transparent 70%),
@@ -142,9 +142,12 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── AIDA CARDS — overlapping the bottom of gradient ── */}
-        <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 z-20 px-4 sm:px-6 lg:px-10">
-          <div className="max-w-6xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* ── AIDA CARDS
+              Mobile/tablet : flow normal dans le gradient (pas de chevauchement)
+              Desktop lg+   : absolute translate-y-1/2 qui chevauche la section blanche
+        ── */}
+        <div className="relative lg:absolute lg:bottom-0 lg:left-0 lg:right-0 lg:translate-y-1/2 z-20 px-4 sm:px-6 lg:px-10 pb-2 lg:pb-0">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {aidaCards.map((card) => (
               <div key={card.stepLabel}
                 className="bg-white rounded-2xl p-5 shadow-xl border border-slate-100/80 flex flex-col gap-3 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
@@ -175,8 +178,8 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-      {/* End hero wrapper — spacer for overlapping cards */}
-      <div className="h-28 sm:h-32 bg-white" />
+      {/* Spacer desktop uniquement — compense le translate-y-1/2 des cards */}
+      <div className="hidden lg:block h-28 bg-white" />
 
       {/* ── TRUST BAR ── */}
       <section className="border-y border-slate-100 bg-slate-50 py-6">
