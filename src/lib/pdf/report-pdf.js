@@ -92,8 +92,8 @@ export function ReportPDF({ organization, totalRevenue, totalExpenses, treasury,
         {/* Header band */}
         <View style={{ ...s.headerBand, backgroundColor: brandColor }}>
           <View style={s.headerLeft}>
-            {organization?.logo_url ? (
-              <Image src={organization.logo_url} style={s.logoImg} />
+            {(organization?.logo_base64 || organization?.logo_url) ? (
+              <Image src={organization.logo_base64 || organization.logo_url} style={s.logoImg} />
             ) : (
               <Text style={s.orgName}>{organization?.name || "Rapport"}</Text>
             )}

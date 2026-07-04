@@ -313,9 +313,27 @@ export default function ComptabilitePage() {
           <div className="space-y-6">
             <div className="flex justify-end">
               <Button variant="secondary" size="sm" onClick={async () => {
-                const { data: org } = await supabase.from("organizations").select("*").single();
+                // Fetch org via API (bypasse RLS)
+                const orgRes = await fetch("/api/settings/org");
+                const { org } = await orgRes.json();
+
+                // Convertir le logo en base64 pour @react-pdf/renderer (CORS)
+                let logoBase64 = null;
+                if (org?.logo_url) {
+                  try {
+                    const imgRes = await fetch(org.logo_url);
+                    const imgBlob = await imgRes.blob();
+                    logoBase64 = await new Promise((resolve) => {
+                      const reader = new FileReader();
+                      reader.onload = () => resolve(reader.result);
+                      reader.readAsDataURL(imgBlob);
+                    });
+                  } catch { /* logo inaccessible */ }
+                }
+
                 const blob = await pdf(
-                  <ReportPDF organization={org} totalRevenue={totalRevenue} totalExpenses={totalExpenses}
+                  <ReportPDF organization={{ ...org, logo_base64: logoBase64 }}
+                    totalRevenue={totalRevenue} totalExpenses={totalExpenses}
                     treasury={treasury} expenses={filteredExpenses} />
                 ).toBlob();
                 const url = URL.createObjectURL(blob);
