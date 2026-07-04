@@ -2,10 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import ContactForm from "@/components/landing/ContactForm";
 import FaqAccordion from "@/components/landing/FaqAccordion";
+import HeroEmailForm from "@/components/landing/HeroEmailForm";
 import {
   ArrowRight, Users, Receipt, FolderKanban, PieChart, Calendar,
-  Users2, CheckCircle, Star, Phone, Mail, MapPin, Zap, Shield,
-  CreditCard, BarChart3, FileText, Headphones, Globe, ChevronRight,
+  Users2, CheckCircle, Star, Phone, Mail, MapPin, Shield,
+  CreditCard, Headphones, Globe, AlertCircle, Layers, TrendingUp, Rocket,
 } from "lucide-react";
 
 const features = [
@@ -41,99 +42,194 @@ const testimonials = [
   { name: "Fatou Ndiaye", role: "Gérante, FN Boutique", avatar: "FN", text: "Simple, rapide et en français. Mes devis sont professionnels et mes clients le remarquent. Le support est très réactif. Je recommande à tous les entrepreneurs.", stars: 5 },
 ];
 
+const aidaCards = [
+  {
+    step: "A", stepLabel: "Attention",
+    icon: AlertCircle,
+    iconBg: "bg-red-50", iconColor: "text-red-500",
+    badgeBg: "bg-red-100", badgeColor: "text-red-600",
+    title: "Marre de jongler entre 10 outils ?",
+    desc: "Emails, Excel, WhatsApp, applications séparées… Vous perdez 2h par jour à chercher vos données au lieu de développer votre activité.",
+    visual: "bg-gradient-to-br from-red-50 to-orange-50",
+    dot: "bg-red-400",
+  },
+  {
+    step: "I", stepLabel: "Intérêt",
+    icon: Layers,
+    iconBg: "bg-blue-50", iconColor: "text-blue-500",
+    badgeBg: "bg-blue-100", badgeColor: "text-blue-600",
+    title: "Un seul outil pour tout gérer",
+    desc: "CRM, devis, factures, projets, comptabilité… Gestio centralise tout dans une interface 100% en français, pensée pour l'Afrique.",
+    visual: "bg-gradient-to-br from-blue-50 to-indigo-50",
+    dot: "bg-blue-400",
+  },
+  {
+    step: "D", stepLabel: "Désir",
+    icon: TrendingUp,
+    iconBg: "bg-emerald-50", iconColor: "text-emerald-500",
+    badgeBg: "bg-emerald-100", badgeColor: "text-emerald-600",
+    title: "+2h gagnées chaque jour",
+    desc: "Nos clients automatisent relances, rapports et paiements. Résultat : plus de temps pour développer leur business, moins de stress.",
+    visual: "bg-gradient-to-br from-emerald-50 to-teal-50",
+    dot: "bg-emerald-400",
+  },
+  {
+    step: "A", stepLabel: "Action",
+    icon: Rocket,
+    iconBg: "bg-violet-50", iconColor: "text-violet-500",
+    badgeBg: "bg-violet-100", badgeColor: "text-violet-600",
+    title: "Essayez 7 jours, sans risque",
+    desc: "Sans carte bancaire, sans engagement. Rejoignez 500+ entrepreneurs qui pilotent leur activité avec Gestio dès aujourd'hui.",
+    visual: "bg-gradient-to-br from-violet-50 to-purple-50",
+    dot: "bg-violet-400",
+  },
+];
+
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden" style={{ fontFamily: "var(--font-sans)" }}>
+    <div className="min-h-screen bg-white overflow-x-hidden">
 
-      {/* ── NAVBAR ── */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/GESIO-logo-app.png" alt="Gestio" width={32} height={32} className="rounded-lg" />
-            <span className="text-lg font-extrabold" style={{ background: "linear-gradient(135deg,#5E5CE6,#7C3AED)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Gestio</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-8">
-            {[["#fonctionnalites", "Fonctionnalités"], ["#tarifs", "Tarifs"], ["#contact", "Contact"]].map(([href, label]) => (
-              <a key={href} href={href} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">{label}</a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="hidden sm:block text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-4 py-2">
-              Connexion
+      {/* ══════════════════════════════════════════
+          HERO WRAPPER — gradient mesh background
+      ══════════════════════════════════════════ */}
+      <div className="relative pb-32" style={{
+        background: `
+          radial-gradient(ellipse 65% 55% at 8% 25%, rgba(99,102,241,0.45) 0%, transparent 70%),
+          radial-gradient(ellipse 55% 50% at 88% 15%, rgba(6,182,212,0.40) 0%, transparent 70%),
+          radial-gradient(ellipse 50% 60% at 55% 92%, rgba(139,92,246,0.30) 0%, transparent 70%),
+          radial-gradient(ellipse 40% 35% at 25% 70%, rgba(167,139,250,0.25) 0%, transparent 70%),
+          linear-gradient(160deg, #818cf8 0%, #a5b4fc 25%, #67e8f9 60%, #c4b5fd 100%)
+        `,
+      }}>
+
+        {/* Subtle noise texture layer */}
+        <div className="absolute inset-0 opacity-30 pointer-events-none"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E\")" }}
+        />
+
+        {/* ── NAVBAR ── */}
+        <header className="relative z-50">
+          <div className="max-w-7xl mx-auto px-6 h-[70px] flex items-center justify-between">
+
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Image src="/GESIO-logo-app.png" alt="Gestio" width={36} height={36} className="rounded-xl" />
+              </div>
+              <span className="text-lg font-extrabold text-white drop-shadow-sm">Gestio</span>
             </Link>
-            <Link href="/inscription" className="text-sm font-semibold text-white px-5 py-2.5 rounded-xl transition-all hover:opacity-90"
-              style={{ background: "linear-gradient(135deg,#5E5CE6,#7C3AED)" }}>
-              Essai gratuit
-            </Link>
+
+            {/* Nav links */}
+            <nav className="hidden md:flex items-center gap-8">
+              {[
+                ["#fonctionnalites", "Fonctionnalités"],
+                ["#tarifs", "Tarifs"],
+                ["#temoignages", "Témoignages"],
+                ["#contact", "Contact"],
+              ].map(([href, label]) => (
+                <a key={href} href={href}
+                  className="text-sm font-medium text-white/85 hover:text-white transition-colors">
+                  {label}
+                </a>
+              ))}
+            </nav>
+
+            {/* CTA */}
+            <div className="flex items-center gap-3">
+              <Link href="/login"
+                className="hidden sm:block text-sm font-medium text-white/80 hover:text-white transition-colors px-3 py-2">
+                Connexion
+              </Link>
+              <Link href="/inscription"
+                className="text-sm font-bold text-indigo-700 bg-white px-5 py-2.5 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">
+                S&apos;inscrire
+              </Link>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* ── HERO ── */}
-      <section className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #4338CA 0%, #5E5CE6 40%, #7C3AED 100%)" }}>
-        {/* Mesh decoration */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #a78bfa, transparent 70%)" }} />
-          <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full opacity-15" style={{ background: "radial-gradient(circle, #818cf8, transparent 70%)" }} />
-          <div className="absolute top-1/2 left-0 w-64 h-64 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #e0e7ff, transparent 70%)" }} />
-        </div>
+        {/* ── HERO CONTENT ── */}
+        <section className="relative z-10 pt-16 pb-10 px-6 text-center">
+          <div className="max-w-3xl mx-auto">
 
-        <div className="relative max-w-7xl mx-auto px-6 pt-20 pb-0">
-          <div className="text-center max-w-4xl mx-auto mb-14">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 text-white/90 text-xs font-semibold mb-6 border border-white/20">
-              <Zap className="w-3.5 h-3.5" />
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-semibold mb-8 border border-white/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
               Conçu pour les entrepreneurs africains · Essai 7 jours gratuit
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
-              Tout votre business,
+
+            {/* Headline */}
+            <h1 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-extrabold text-white leading-[1.1] tracking-tight mb-6 drop-shadow-sm">
+              Gérez tout votre business,
               <br />
-              <span className="text-yellow-300">un seul outil</span>
+              <span className="text-white">au même endroit</span>
             </h1>
-            <p className="text-lg text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed">
+
+            {/* Subtitle */}
+            <p className="text-base sm:text-lg text-white/80 max-w-xl mx-auto mb-10 leading-relaxed">
               Gestio réunit CRM, projets, devis, facturation et comptabilité dans une plateforme 100% en français, pensée pour le marché africain.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/inscription"
-                className="flex items-center gap-2 bg-white text-primary-600 font-bold px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all text-sm">
-                Démarrer gratuitement
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              <a href="#fonctionnalites"
-                className="flex items-center gap-2 text-white/90 font-medium px-8 py-4 rounded-2xl border border-white/30 hover:bg-white/10 transition-all text-sm">
-                Voir les fonctionnalités
-                <ChevronRight className="w-4 h-4" />
-              </a>
-            </div>
-          </div>
 
-          {/* Hero image */}
-          <div className="relative max-w-5xl mx-auto">
-            <div className="relative rounded-t-2xl overflow-hidden shadow-2xl border border-white/20" style={{ background: "rgba(255,255,255,0.05)" }}>
-              <Image
-                src="/application%20de%20gestion%20entreprise%20senegal%20Gestio00001.png"
-                alt="Interface Gestio — Tableau de bord"
-                width={1200} height={720}
-                className="w-full object-cover object-top"
-                priority
-                unoptimized
-              />
-              <div className="absolute bottom-0 left-0 right-0 h-24" style={{ background: "linear-gradient(to top, rgba(67,56,202,0.8), transparent)" }} />
-            </div>
+            {/* Email input + CTA pill */}
+            <HeroEmailForm />
+
+            <p className="mt-4 text-xs text-white/60">
+              Aucune carte bancaire requise · Annulation à tout moment
+            </p>
+          </div>
+        </section>
+
+        {/* ── AIDA CARDS — overlapping the bottom of gradient ── */}
+        <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 z-20 px-4 sm:px-6 lg:px-10">
+          <div className="max-w-6xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {aidaCards.map((card) => (
+              <div key={card.stepLabel}
+                className="bg-white rounded-2xl p-5 shadow-xl border border-slate-100/80 flex flex-col gap-3 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+
+                {/* Top: step badge + icon visual */}
+                <div className="flex items-start justify-between">
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${card.badgeBg} ${card.badgeColor}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${card.dot}`} />
+                    {card.stepLabel}
+                  </span>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${card.iconBg}`}>
+                    <card.icon className={`w-4.5 h-4.5 ${card.iconColor}`} strokeWidth={2} />
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 leading-snug mb-1.5">{card.title}</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">{card.desc}</p>
+                </div>
+
+                {/* Step indicator */}
+                <div className="flex items-center gap-1 mt-auto pt-1">
+                  {["A", "I", "D", "A"].map((s, i) => (
+                    <div key={i}
+                      className={`h-1 flex-1 rounded-full transition-all ${s === card.step && i === aidaCards.indexOf(card) ? "bg-gradient-to-r from-violet-500 to-indigo-500" : "bg-slate-100"}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      </section>
+      </div>
+      {/* End hero wrapper — spacer for overlapping cards */}
+      <div className="h-28 sm:h-32 bg-white" />
 
       {/* ── TRUST BAR ── */}
-      <section className="border-b border-slate-100 bg-slate-50 py-6">
+      <section className="border-y border-slate-100 bg-slate-50 py-6">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 text-sm text-slate-500">
-            <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-primary-500" /> Données sécurisées & hébergées en Europe</div>
+            <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-indigo-500" /> Données sécurisées & hébergées en Europe</div>
             <div className="hidden md:block w-px h-4 bg-slate-300" />
-            <div className="flex items-center gap-2"><CreditCard className="w-4 h-4 text-primary-500" /> Wave · Orange Money · Free Money intégrés</div>
+            <div className="flex items-center gap-2"><CreditCard className="w-4 h-4 text-indigo-500" /> Wave · Orange Money · Free Money intégrés</div>
             <div className="hidden md:block w-px h-4 bg-slate-300" />
-            <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-primary-500" /> Interface 100% en français</div>
+            <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-indigo-500" /> Interface 100% en français</div>
             <div className="hidden md:block w-px h-4 bg-slate-300" />
-            <div className="flex items-center gap-2"><Headphones className="w-4 h-4 text-primary-500" /> Support réactif basé au Sénégal</div>
+            <div className="flex items-center gap-2"><Headphones className="w-4 h-4 text-indigo-500" /> Support réactif basé au Sénégal</div>
           </div>
         </div>
       </section>
@@ -142,7 +238,7 @@ export default function HomePage() {
       <section id="fonctionnalites" className="py-24 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <span className="text-xs font-bold uppercase tracking-widest text-primary-500 mb-3 block">Fonctionnalités</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-3 block">Fonctionnalités</span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-4">
               Tout ce dont votre entreprise a besoin
             </h2>
@@ -152,7 +248,7 @@ export default function HomePage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((f) => (
-              <div key={f.title} className="group p-6 rounded-2xl border border-slate-100 bg-white hover:border-primary-200 hover:shadow-lg transition-all cursor-default">
+              <div key={f.title} className="group p-6 rounded-2xl border border-slate-100 bg-white hover:border-indigo-200 hover:shadow-lg transition-all cursor-default">
                 <div className={`inline-flex p-3 rounded-xl ${f.color} mb-4`}>
                   <f.icon className="w-5 h-5" />
                 </div>
@@ -168,7 +264,7 @@ export default function HomePage() {
       <section className="py-24 px-6" style={{ background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)" }}>
         <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-primary-500 mb-3 block">Facturation</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-3 block">Facturation</span>
             <h2 className="text-3xl font-extrabold text-slate-900 mb-5 leading-tight">
               Des devis et factures professionnels en quelques clics
             </h2>
@@ -178,7 +274,7 @@ export default function HomePage() {
             <ul className="space-y-3 mb-8">
               {["Devis convertibles en factures en 1 clic", "Paiement en ligne Wave & Orange Money", "Rappels automatiques de paiement", "Export PDF personnalisé avec votre logo"].map((item) => (
                 <li key={item} className="flex items-center gap-3 text-sm text-slate-700">
-                  <CheckCircle className="w-4 h-4 text-primary-500 shrink-0" />
+                  <CheckCircle className="w-4 h-4 text-indigo-500 shrink-0" />
                   {item}
                 </li>
               ))}
@@ -302,10 +398,10 @@ export default function HomePage() {
       </section>
 
       {/* ── TESTIMONIALS ── */}
-      <section className="py-24 px-6" style={{ background: "linear-gradient(135deg, #f5f3ff, #ede9fe)" }}>
+      <section id="temoignages" className="py-24 px-6" style={{ background: "linear-gradient(135deg, #f5f3ff, #ede9fe)" }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <span className="text-xs font-bold uppercase tracking-widest text-primary-500 mb-3 block">Témoignages</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-3 block">Témoignages</span>
             <h2 className="text-3xl font-extrabold text-slate-900">Ce qu'en disent nos clients</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
@@ -337,13 +433,13 @@ export default function HomePage() {
       <section id="tarifs" className="py-24 px-6 bg-white">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
-            <span className="text-xs font-bold uppercase tracking-widest text-primary-500 mb-3 block">Tarifs</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-3 block">Tarifs</span>
             <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Des prix adaptés à votre activité</h2>
             <p className="text-slate-500">Commencez gratuitement. Upgradez quand vous êtes prêt.</p>
           </div>
           <div className="grid sm:grid-cols-3 gap-6">
             {plans.map((plan) => (
-              <div key={plan.name} className={`relative rounded-2xl p-7 flex flex-col ${plan.badge === "Populaire" ? "border-2 border-primary-500 shadow-xl" : "border border-slate-200"}`}>
+              <div key={plan.name} className={`relative rounded-2xl p-7 flex flex-col ${plan.badge === "Populaire" ? "border-2 border-indigo-500 shadow-xl" : "border border-slate-200"}`}>
                 {plan.badge && (
                   <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs font-bold px-4 py-1 rounded-full text-white"
                     style={{ background: plan.badge === "Populaire" ? "linear-gradient(135deg,#5E5CE6,#7C3AED)" : "#0f172a" }}>
@@ -361,7 +457,7 @@ export default function HomePage() {
                 <ul className="space-y-2.5 mb-8 flex-1">
                   {plan.features.map((feat) => (
                     <li key={feat} className="flex items-center gap-2 text-sm text-slate-600">
-                      <CheckCircle className="w-4 h-4 text-primary-500 shrink-0" />
+                      <CheckCircle className="w-4 h-4 text-indigo-500 shrink-0" />
                       {feat}
                     </li>
                   ))}
@@ -385,7 +481,7 @@ export default function HomePage() {
       <section className="py-24 px-6 bg-slate-50">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <span className="text-xs font-bold uppercase tracking-widest text-primary-500 mb-3 block">FAQ</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-3 block">FAQ</span>
             <h2 className="text-3xl font-extrabold text-slate-900">Questions fréquentes</h2>
           </div>
           <FaqAccordion />
@@ -396,7 +492,7 @@ export default function HomePage() {
       <section id="contact" className="py-24 px-6 bg-white">
         <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-16 items-start">
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-primary-500 mb-3 block">Contact</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-3 block">Contact</span>
             <h2 className="text-3xl font-extrabold text-slate-900 mb-5">
               Une question ? <br />Parlons-en.
             </h2>
@@ -410,7 +506,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 mb-0.5">Téléphone</p>
-                  <p className="text-sm font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">+221 77 776 25 22</p>
+                  <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">+221 77 776 25 22</p>
                 </div>
               </a>
               <a href="mailto:contact@gestio.sn" className="flex items-center gap-4 group">
@@ -419,7 +515,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 mb-0.5">Email</p>
-                  <p className="text-sm font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">contact@gestio.sn</p>
+                  <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">contact@gestio.sn</p>
                 </div>
               </a>
               <div className="flex items-center gap-4">
@@ -441,12 +537,14 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA BANNER ── */}
-      <section className="mx-4 sm:mx-6 lg:mx-10 mb-10 rounded-3xl overflow-hidden" style={{ background: "linear-gradient(135deg, #4338CA 0%, #5E5CE6 50%, #7C3AED 100%)" }}>
+      <section className="mx-4 sm:mx-6 lg:mx-10 mb-10 rounded-3xl overflow-hidden" style={{
+        background: `
+          radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.5) 0%, transparent 60%),
+          radial-gradient(ellipse at 80% 20%, rgba(6,182,212,0.4) 0%, transparent 60%),
+          linear-gradient(135deg, #4338CA 0%, #5E5CE6 50%, #7C3AED 100%)
+        `,
+      }}>
         <div className="relative px-8 py-16 text-center overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #a78bfa, transparent 70%)" }} />
-            <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-15" style={{ background: "radial-gradient(circle, #818cf8, transparent 70%)" }} />
-          </div>
           <div className="relative max-w-2xl mx-auto">
             <h2 className="text-3xl font-extrabold text-white mb-4">
               Prêt à simplifier votre gestion ?
@@ -456,7 +554,7 @@ export default function HomePage() {
               7 jours d'essai gratuit, sans carte bancaire.
             </p>
             <Link href="/inscription"
-              className="inline-flex items-center gap-2 bg-white font-bold px-8 py-4 rounded-2xl text-sm hover:shadow-xl hover:-translate-y-0.5 transition-all"
+              className="inline-flex items-center gap-2 bg-white font-bold px-8 py-4 rounded-full text-sm hover:shadow-xl hover:-translate-y-0.5 transition-all"
               style={{ color: "#5E5CE6" }}>
               Démarrer mon essai gratuit
               <ArrowRight className="w-4 h-4" />
