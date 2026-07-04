@@ -334,7 +334,8 @@ export default function ComptabilitePage() {
                 const blob = await pdf(
                   <ReportPDF organization={{ ...org, logo_base64: logoBase64 }}
                     totalRevenue={totalRevenue} totalExpenses={totalExpenses}
-                    treasury={treasury} expenses={filteredExpenses} />
+                    treasury={treasury} expenses={filteredExpenses}
+                    monthlyData={monthlyData} expensesByCategory={expensesByCategory} />
                 ).toBlob();
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
