@@ -231,7 +231,7 @@ export default function HomePage() {
               Créez des documents conformes aux normes fiscales sénégalaises, envoyez-les par email ou WhatsApp et suivez les paiements en temps réel. Vos clients peuvent payer directement par Wave ou Orange Money.
             </p>
             <ul className="space-y-3 mb-8">
-              {["Devis convertibles en factures en 1 clic", "Paiement en ligne Wave & Orange Money", "Rappels automatiques de paiement", "Export PDF personnalisé avec votre logo"].map((item) => (
+              {["Devis convertibles en factures en 1 clic", "Rappels automatiques de paiement", "Export PDF personnalisé avec votre logo"].map((item) => (
                 <li key={item} className="flex items-center gap-3 text-sm text-slate-700">
                   <CheckCircle className="w-4 h-4 text-indigo-500 shrink-0" />
                   {item}
@@ -243,17 +243,14 @@ export default function HomePage() {
               Essayer gratuitement <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-          <div className="relative">
-            <div className="absolute -inset-4 rounded-3xl opacity-30" style={{ background: "linear-gradient(135deg,#5E5CE6,#7C3AED)" }} />
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white">
-              <Image
-                src="/application%20de%20gestion%20entreprise%20senegal%20Gestio00002.png"
-                alt="Module Facturation Gestio"
-                width={720} height={480}
-                className="w-full object-cover"
-                unoptimized
-              />
-            </div>
+          <div className="flex items-center justify-center">
+            <Image
+              src="/application%20de%20gestion%20entreprise%20senegal%20Gestio00005.png"
+              alt="Module Facturation Gestio"
+              width={720} height={480}
+              className="w-full object-contain drop-shadow-xl rounded-2xl"
+              unoptimized
+            />
           </div>
         </div>
       </section>
