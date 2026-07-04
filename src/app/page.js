@@ -3,6 +3,7 @@ import Image from "next/image";
 import ContactForm from "@/components/landing/ContactForm";
 import FaqAccordion from "@/components/landing/FaqAccordion";
 import HeroEmailForm from "@/components/landing/HeroEmailForm";
+import Header from "@/components/landing/Header";
 import {
   ArrowRight, Users, Receipt, FolderKanban, PieChart, Calendar,
   Users2, CheckCircle, Star, Phone, Mail, MapPin, Shield,
@@ -89,6 +90,9 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
 
+      {/* ── Fixed floating Header ── */}
+      <Header />
+
       {/* ══════════════════════════════════════════
           HERO WRAPPER — gradient mesh background
       ══════════════════════════════════════════ */}
@@ -107,49 +111,8 @@ export default function HomePage() {
           style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E\")" }}
         />
 
-        {/* ── NAVBAR ── */}
-        <header className="relative z-50">
-          <div className="max-w-7xl mx-auto px-6 h-[70px] flex items-center justify-between">
-
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Image src="/GESIO-logo-app.png" alt="Gestio" width={36} height={36} className="rounded-xl" />
-              </div>
-              <span className="text-lg font-extrabold text-white drop-shadow-sm">Gestio</span>
-            </Link>
-
-            {/* Nav links */}
-            <nav className="hidden md:flex items-center gap-8">
-              {[
-                ["#fonctionnalites", "Fonctionnalités"],
-                ["#tarifs", "Tarifs"],
-                ["#temoignages", "Témoignages"],
-                ["#contact", "Contact"],
-              ].map(([href, label]) => (
-                <a key={href} href={href}
-                  className="text-sm font-medium text-white/85 hover:text-white transition-colors">
-                  {label}
-                </a>
-              ))}
-            </nav>
-
-            {/* CTA */}
-            <div className="flex items-center gap-3">
-              <Link href="/login"
-                className="hidden sm:block text-sm font-medium text-white/80 hover:text-white transition-colors px-3 py-2">
-                Connexion
-              </Link>
-              <Link href="/inscription"
-                className="text-sm font-bold text-indigo-700 bg-white px-5 py-2.5 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">
-                S&apos;inscrire
-              </Link>
-            </div>
-          </div>
-        </header>
-
-        {/* ── HERO CONTENT ── */}
-        <section className="relative z-10 pt-16 pb-10 px-6 text-center">
+        {/* ── HERO CONTENT — pt accounts for fixed header ── */}
+        <section className="relative z-10 pt-44 pb-10 px-6 text-center">
           <div className="max-w-3xl mx-auto">
 
             {/* Badge */}
