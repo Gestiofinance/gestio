@@ -71,7 +71,7 @@ export default function FacturesPage() {
     client_id: "", type: "standard", status: "brouillon",
     issue_date: new Date().toISOString().split("T")[0],
     due_date: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
-    notes: "", conditions: "", apply_stamp: false,
+    notes: "", conditions: "", apply_stamp: false, apply_tva: false,
     discount_type: "amount", discount_value: "",
   });
   const [lines, setLines] = useState([{ ...emptyLine }]);
@@ -100,7 +100,7 @@ export default function FacturesPage() {
     const dv = parseFloat(form.discount_value) || 0;
     const discountAmount = form.discount_type === "percent" ? subtotal * (dv / 100) : dv;
     const afterDiscount = Math.max(0, subtotal - discountAmount);
-    const taxAmount = afterDiscount * 0.18;
+    const taxAmount = form.apply_tva ? afterDiscount * 0.18 : 0;
     return { subtotal, discount_amount: discountAmount, tax_amount: taxAmount, total: afterDiscount + taxAmount };
   }
 
@@ -109,7 +109,7 @@ export default function FacturesPage() {
       client_id: "", type: "standard", status: "brouillon",
       issue_date: new Date().toISOString().split("T")[0],
       due_date: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
-      notes: "", conditions: "", apply_stamp: false, discount_type: "amount", discount_value: "",
+      notes: "", conditions: "", apply_stamp: false, apply_tva: false, discount_type: "amount", discount_value: "",
     });
     setLines([{ ...emptyLine }]);
     setEditing(null); setShowForm(true);
@@ -122,6 +122,7 @@ export default function FacturesPage() {
       issue_date: inv.issue_date || "", due_date: inv.due_date || "",
       notes: inv.notes || "", conditions: inv.conditions || "",
       apply_stamp: inv.apply_stamp || false,
+      apply_tva: Number(inv.tax_amount) > 0,
       discount_type: inv.discount_type || "amount", discount_value: inv.discount_value || "",
     });
     setLines(items?.length ? items.map((i) => ({ description: i.description, quantity: i.quantity, unit_price: i.unit_price, tax_rate: i.tax_rate })) : [{ ...emptyLine }]);
@@ -421,9 +422,26 @@ export default function FacturesPage() {
               {totals.discount_amount > 0 && (
                 <div className="flex justify-between"><span className="text-muted">Remise</span><span className="font-medium text-danger-500">-{formatCurrency(totals.discount_amount)}</span></div>
               )}
-              <div className="flex justify-between"><span className="text-muted">TVA (18%)</span><span className="font-medium">{formatCurrency(totals.tax_amount)}</span></div>
-              <div className="flex justify-between border-t border-slate-200 pt-2"><span className="font-semibold">Total TTC</span><span className="font-bold text-lg">{formatCurrency(totals.total)}</span></div>
+              {form.apply_tva && (
+                <div className="flex justify-between"><span className="text-muted">TVA (18%)</span><span className="font-medium">{formatCurrency(totals.tax_amount)}</span></div>
+              )}
+              <div className="flex justify-between border-t border-slate-200 pt-2"><span className="font-semibold">{form.apply_tva ? "Total TTC" : "Total"}</span><span className="font-bold text-lg">{formatCurrency(totals.total)}</span></div>
             </div>
+          </div>
+
+          {/* TVA toggle */}
+          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+            <div>
+              <p className="text-sm font-medium text-foreground">Appliquer la TVA (18%)</p>
+              <p className="text-xs text-muted">Ajoute 18% de TVA au montant total</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, apply_tva: !form.apply_tva })}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.apply_tva ? "bg-primary-500" : "bg-slate-300"}`}
+            >
+              <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${form.apply_tva ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
           </div>
 
           {/* Cachet toggle */}

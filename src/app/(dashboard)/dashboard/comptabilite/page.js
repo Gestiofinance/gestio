@@ -316,7 +316,7 @@ export default function ComptabilitePage() {
                 const { data: org } = await supabase.from("organizations").select("*").single();
                 const blob = await pdf(
                   <ReportPDF organization={org} totalRevenue={totalRevenue} totalExpenses={totalExpenses}
-                    treasury={treasury} tvaCollectee={totalTVACollectee} tvaDeductible={totalTVADeductible} expenses={expenses} />
+                    treasury={treasury} expenses={filteredExpenses} />
                 ).toBlob();
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
@@ -337,14 +337,6 @@ export default function ComptabilitePage() {
                   <div className="flex justify-between"><span>Chiffre d&apos;affaires</span><span className="font-medium">{formatCurrency(totalRevenue)}</span></div>
                   <div className="flex justify-between"><span>Total dépenses</span><span className="font-medium text-danger-500">-{formatCurrency(totalExpenses)}</span></div>
                   <div className="flex justify-between border-t pt-2"><span className="font-semibold">Résultat net</span><span className={`font-bold ${treasury >= 0 ? "text-success-500" : "text-danger-500"}`}>{formatCurrency(treasury)}</span></div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><h3 className="font-semibold">TVA</h3></CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div className="flex justify-between"><span>TVA collectée</span><span className="font-medium">{formatCurrency(totalTVACollectee)}</span></div>
-                  <div className="flex justify-between"><span>TVA déductible</span><span className="font-medium">-{formatCurrency(totalTVADeductible)}</span></div>
-                  <div className="flex justify-between border-t pt-2"><span className="font-semibold">TVA à reverser</span><span className="font-bold">{formatCurrency(totalTVACollectee - totalTVADeductible)}</span></div>
                 </CardContent>
               </Card>
             </div>

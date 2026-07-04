@@ -79,7 +79,7 @@ const s = StyleSheet.create({
   footerText: { fontSize: 7, color: "#94a3b8" },
 });
 
-export function ReportPDF({ organization, totalRevenue, totalExpenses, treasury, tvaCollectee, tvaDeductible, expenses }) {
+export function ReportPDF({ organization, totalRevenue, totalExpenses, treasury, expenses }) {
   const now = new Date();
   const brandColor = organization?.brand_color || accent;
   const dynamicAccent = { backgroundColor: brandColor };
@@ -139,28 +139,6 @@ export function ReportPDF({ organization, totalRevenue, totalExpenses, treasury,
               <View style={{ ...s.summaryRowTotal, backgroundColor: brandColor }}>
                 <Text style={s.summaryTotalLabel}>Résultat net</Text>
                 <Text style={s.summaryTotalValue}>{fmt(treasury)}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* TVA */}
-          <View style={s.section}>
-            <View style={s.sectionHeader}>
-              <View style={dynamicDot} />
-              <Text style={s.sectionTitle}>TVA</Text>
-            </View>
-            <View style={s.summaryTable}>
-              <View style={s.summaryRow}>
-                <Text style={s.summaryLabel}>TVA collectée</Text>
-                <Text style={s.summaryValue}>{fmt(tvaCollectee)}</Text>
-              </View>
-              <View style={s.summaryRowAlt}>
-                <Text style={s.summaryLabel}>TVA déductible</Text>
-                <Text style={s.summaryValueRed}>-{fmt(tvaDeductible)}</Text>
-              </View>
-              <View style={{ ...s.summaryRowTotal, backgroundColor: brandColor }}>
-                <Text style={s.summaryTotalLabel}>TVA à reverser</Text>
-                <Text style={s.summaryTotalValue}>{fmt(tvaCollectee - tvaDeductible)}</Text>
               </View>
             </View>
           </View>
