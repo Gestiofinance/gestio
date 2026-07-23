@@ -34,6 +34,7 @@ export const PLANS = {
       "Utilisateurs illimités",
       "Factures et devis illimités",
       "Gestion d'équipe complète",
+      "Signature de documents",
       "Support prioritaire",
     ],
     color: "violet",
@@ -51,6 +52,7 @@ export const PLANS = {
     max_quotes: null,
     features: [
       "Tout le plan Pro",
+      "Signature de documents",
       "Accès complet à tous les modules",
       "Rapports financiers avancés",
       "Support dédié prioritaire",
