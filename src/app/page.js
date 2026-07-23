@@ -277,7 +277,7 @@ export default function HomePage() {
       </div>
 
       {/* ── BENEFITS ── */}
-      <div id="avis" className="max-w-[1140px] mx-auto" style={{ padding: "110px 32px" }}>
+      <div className="max-w-[1140px] mx-auto" style={{ padding: "110px 32px" }}>
         <div className="text-center" style={{ marginBottom: "56px" }}>
           <div className="inline-block rounded-full text-[13px] font-semibold mb-[18px]" style={{ padding: "6px 14px", background: "#f3effe", color: "#6d28d9" }}>
             Pourquoi Gestio
@@ -325,7 +325,7 @@ export default function HomePage() {
       </div>
 
       {/* ── CTA BAND ── */}
-      <div className="relative overflow-hidden text-center" style={{ background: GRADIENT, padding: "100px 32px" }}>
+      <div id="avis" className="relative overflow-hidden text-center" style={{ background: GRADIENT, padding: "100px 32px" }}>
         <div className="absolute" style={{ top: "-160px", left: "-100px", width: "420px", height: "420px", borderRadius: "50%", background: "radial-gradient(circle,rgba(255,255,255,0.18),transparent 70%)" }} />
         <div className="relative max-w-[960px] mx-auto">
           <h2 className="font-extrabold text-white" style={{ fontSize: "36px", letterSpacing: "-0.8px", margin: "0 0 40px" }}>

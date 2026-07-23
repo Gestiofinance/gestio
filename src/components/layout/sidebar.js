@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   CreditCard,
   ShieldCheck,
+  PenTool,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,6 +34,7 @@ const navigation = [
   { name: "Devis", href: "/dashboard/devis", icon: FileText },
   { name: "Factures", href: "/dashboard/factures", icon: Receipt },
   { name: "Comptabilité", href: "/dashboard/comptabilite", icon: PieChart },
+  { name: "Signature", href: "/dashboard/signature", icon: PenTool },
   { name: "Équipe", href: "/dashboard/equipe", icon: UserCog },
   { name: "Paramètres", href: "/dashboard/parametres", icon: Settings },
   { name: "Abonnement", href: "/dashboard/abonnement", icon: CreditCard },
