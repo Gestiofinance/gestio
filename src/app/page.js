@@ -1,571 +1,433 @@
 import Link from "next/link";
 import Image from "next/image";
-import ContactForm from "@/components/landing/ContactForm";
-import FaqAccordion from "@/components/landing/FaqAccordion";
-import Header from "@/components/landing/Header";
-import {
-  ArrowRight, Users, Receipt, FolderKanban, PieChart, Calendar,
-  Users2, CheckCircle, Star, Phone, Mail, MapPin, Shield,
-  CreditCard, Headphones, Globe, AlertCircle, Layers, TrendingUp, Rocket,
-} from "lucide-react";
+import FeatureTabs from "@/components/landing/FeatureTabs";
+import FaqSection from "@/components/landing/FaqSection";
+import TestimonialsMarquee from "@/components/landing/TestimonialsMarquee";
 
-const features = [
-  { icon: Users, title: "CRM & Clients", desc: "Gérez vos contacts, historique, segments et relances client en un seul endroit.", color: "bg-blue-50 text-blue-600" },
-  { icon: Receipt, title: "Devis & Factures", desc: "Créez des documents professionnels conformes aux normes fiscales avec paiement en ligne.", color: "bg-violet-50 text-violet-600" },
-  { icon: FolderKanban, title: "Projets & Tâches", desc: "Pilotez vos projets en vue Kanban ou calendrier avec suivi de rentabilité.", color: "bg-emerald-50 text-emerald-600" },
-  { icon: PieChart, title: "Comptabilité", desc: "Tableau de bord financier, suivi des dépenses, rapports et export PDF.", color: "bg-orange-50 text-orange-600" },
-  { icon: Calendar, title: "Planning", desc: "Organisez votre agenda et planifiez vos rendez-vous clients et équipe.", color: "bg-pink-50 text-pink-600" },
-  { icon: Users2, title: "Gestion d'équipe", desc: "Invitez vos collaborateurs, définissez les rôles et gérez les accès.", color: "bg-cyan-50 text-cyan-600" },
+const GRADIENT = "linear-gradient(135deg,#4f46e5,#9333ea)";
+const GRADIENT_120 = "linear-gradient(120deg,#4f46e5,#9333ea)";
+
+const CARD_STYLE = {
+  background: "#fff",
+  borderRadius: "20px",
+  border: "1px solid #ece8fb",
+  boxShadow: "0 16px 40px rgba(76,29,149,0.08)",
+  padding: "20px",
+  textAlign: "left",
+};
+
+function iconWrapStyle(light) {
+  return {
+    width: "34px",
+    height: "34px",
+    borderRadius: "9px",
+    background: light,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "14px",
+  };
+}
+
+const hues = [
+  { light: "#ede9fe", stroke: "#6d28d9" },
+  { light: "#fae8ff", stroke: "#a21caf" },
+  { light: "#e0e7ff", stroke: "#4338ca" },
+  { light: "#fce7f3", stroke: "#be185d" },
+];
+
+function FacturationIcon({ color }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M9 13h6" />
+      <path d="M9 17h6" />
+    </svg>
+  );
+}
+
+function ClientsIcon({ color }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function ProjetsIcon({ color }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function ComptaIcon({ color }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+      <path d="M22 12A10 10 0 0 0 12 2v10z" />
+    </svg>
+  );
+}
+
+function TempsIcon({ color }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20v-6M6 20V10M18 20V4" />
+    </svg>
+  );
+}
+
+function RetardIcon({ color }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </svg>
+  );
+}
+
+function ChiffresIcon({ color }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v18h18" />
+      <path d="M7 15l4-6 3 4 5-8" />
+    </svg>
+  );
+}
+
+function EquipeIcon({ color }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+const heroCards = [
+  { Icon: FacturationIcon, hue: hues[0], title: "Facturation", desc: "Factures et devis envoyés en quelques clics." },
+  { Icon: ClientsIcon, hue: hues[1], title: "Clients", desc: "Toutes vos relations clients centralisées." },
+  { Icon: ProjetsIcon, hue: hues[2], title: "Projets", desc: "Suivi des tâches et échéances en temps réel." },
+  { Icon: ComptaIcon, hue: hues[3], title: "Comptabilité", desc: "Recettes, dépenses et trésorerie en un coup d'œil." },
+];
+
+const stats = [
+  { value: "500+", label: "entreprises actives" },
+  { value: "12M+", label: "FCFA facturés" },
+  { value: "4,8/5", label: "satisfaction client" },
+  { value: "14 j", label: "d'essai gratuit" },
+];
+
+const bullets = [
+  { title: "Suivi du chiffre d'affaires", desc: "Visualisez l'évolution de vos revenus mois après mois." },
+  { title: "Gestion des tâches à faire", desc: "Priorités, échéances et statuts toujours à jour." },
+  { title: "Factures et devis liés", desc: "Retrouvez en un clic toutes les dernières factures émises." },
 ];
 
 const plans = [
   {
-    name: "Standard", price: "9 000", period: "mois", badge: null,
-    desc: "Idéal pour démarrer votre activité",
-    features: ["1 utilisateur", "15 factures / mois", "Tous les modules", "Support email", "Essai 7 jours gratuit"],
+    name: "Essentiel", price: "5 000 FCFA", period: "par mois", featured: false,
+    features: ["1 utilisateur", "Factures & devis illimités", "Jusqu'à 20 clients", "Support par email"],
   },
   {
-    name: "Pro", price: "14 500", period: "mois", badge: "Populaire",
-    desc: "Pour les équipes en croissance",
-    features: ["Utilisateurs illimités", "Factures illimitées", "Tous les modules", "Rapport PDF avancé", "Support prioritaire", "Essai 7 jours gratuit"],
+    name: "Pro", price: "15 000 FCFA", period: "par mois", featured: true,
+    features: ["5 utilisateurs", "Clients & projets illimités", "Comptabilité & rapports", "Planning et tâches d'équipe", "Support prioritaire"],
   },
   {
-    name: "Business", price: "25 000", period: "trimestre", badge: "-12%",
-    desc: "Pour les entreprises établies",
-    features: ["Tout du plan Pro", "Onboarding personnalisé", "Support dédié 24/7", "API & intégrations", "Domaine personnalisé", "Essai 7 jours gratuit"],
+    name: "Entreprise", price: "35 000 FCFA", period: "par mois", featured: false,
+    features: ["Utilisateurs illimités", "Toutes les fonctionnalités Pro", "Accès API", "Accompagnement dédié"],
   },
 ];
 
-const testimonials = [
-  { name: "Aminata Diallo", role: "Directrice, Diallo Consulting", avatar: "AD", text: "Gestio a transformé ma façon de gérer mon activité. La facturation est un jeu d'enfant et le suivi de mes clients est enfin centralisé. Je gagne au moins 2h par jour.", stars: 5 },
-  { name: "Moussa Sarr", role: "Fondateur, MS Digital Agency", avatar: "MS", text: "J'utilisais plusieurs outils séparés avant Gestio. Maintenant tout est dans une seule plateforme, même mes paiements Wave et Orange Money. Excellent produit !", stars: 5 },
-  { name: "Fatou Ndiaye", role: "Gérante, FN Boutique", avatar: "FN", text: "Simple, rapide et en français. Mes devis sont professionnels et mes clients le remarquent. Le support est très réactif. Je recommande à tous les entrepreneurs.", stars: 5 },
+const benefits = [
+  { Icon: TempsIcon, hue: hues[0], title: "Gagnez du temps", desc: "Créez une facture ou un devis en moins de 2 minutes, sans papier ni tableur." },
+  { Icon: RetardIcon, hue: hues[1], title: "Zéro retard de paiement", desc: "Relances automatiques et suivi des factures impayées en un coup d'œil." },
+  { Icon: ChiffresIcon, hue: hues[2], title: "Décidez avec des chiffres", desc: "Chiffre d'affaires, dépenses et trésorerie en FCFA, mis à jour en continu." },
+  { Icon: EquipeIcon, hue: hues[3], title: "Toute l'équipe alignée", desc: "Clients, projets, tâches et planning partagés avec votre équipe." },
 ];
 
-const aidaCards = [
-  {
-    step: "A", stepLabel: "Attention",
-    icon: AlertCircle,
-    iconBg: "bg-red-50", iconColor: "text-red-500",
-    badgeBg: "bg-red-100", badgeColor: "text-red-600",
-    title: "Marre de jongler entre 10 outils ?",
-    desc: "Emails, Excel, WhatsApp, applications séparées… Vous perdez 2h par jour à chercher vos données au lieu de développer votre activité.",
-    visual: "bg-gradient-to-br from-red-50 to-orange-50",
-    dot: "bg-red-400",
-  },
-  {
-    step: "I", stepLabel: "Intérêt",
-    icon: Layers,
-    iconBg: "bg-blue-50", iconColor: "text-blue-500",
-    badgeBg: "bg-blue-100", badgeColor: "text-blue-600",
-    title: "Un seul outil pour tout gérer",
-    desc: "CRM, devis, factures, projets, comptabilité… Gestio centralise tout dans une interface 100% en français, pensée pour l'Afrique.",
-    visual: "bg-gradient-to-br from-blue-50 to-indigo-50",
-    dot: "bg-blue-400",
-  },
-  {
-    step: "D", stepLabel: "Désir",
-    icon: TrendingUp,
-    iconBg: "bg-emerald-50", iconColor: "text-emerald-500",
-    badgeBg: "bg-emerald-100", badgeColor: "text-emerald-600",
-    title: "+2h gagnées chaque jour",
-    desc: "Nos clients automatisent relances, rapports et paiements. Résultat : plus de temps pour développer leur business, moins de stress.",
-    visual: "bg-gradient-to-br from-emerald-50 to-teal-50",
-    dot: "bg-emerald-400",
-  },
-  {
-    step: "A", stepLabel: "Action",
-    icon: Rocket,
-    iconBg: "bg-violet-50", iconColor: "text-violet-500",
-    badgeBg: "bg-violet-100", badgeColor: "text-violet-600",
-    title: "Essayez 7 jours, sans risque",
-    desc: "Sans carte bancaire, sans engagement. Rejoignez 500+ entrepreneurs qui pilotent leur activité avec Gestio dès aujourd'hui.",
-    visual: "bg-gradient-to-br from-violet-50 to-purple-50",
-    dot: "bg-violet-400",
-  },
-];
+const footerLinks = {
+  Produit: ["Facturation", "Devis", "Clients & projets", "Comptabilité"],
+  Entreprise: ["À propos", "Blog", "Tarifs", "Contact"],
+  Support: ["Centre d'aide", "FAQ", "Confidentialité", "Conditions"],
+};
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div style={{ background: "#ffffff", color: "#1e1b3a", overflow: "hidden" }}>
 
-      {/* ── Fixed floating Header ── */}
-      <Header />
+      {/* ── HERO ── */}
+      <div style={{ position: "relative", background: "#f6f4fe", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: "-220px", left: "-160px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle,rgba(79,70,229,0.35),rgba(79,70,229,0) 70%)", filter: "blur(10px)" }} />
+        <div style={{ position: "absolute", top: "-100px", right: "-200px", width: "650px", height: "650px", borderRadius: "50%", background: "radial-gradient(circle,rgba(192,38,211,0.28),rgba(192,38,211,0) 70%)", filter: "blur(10px)" }} />
 
-      {/* ══════════════════════════════════════════
-          HERO WRAPPER — gradient mesh background
-      ══════════════════════════════════════════ */}
-      <div className="relative pb-10 lg:pb-32" style={{
-        background: `
-          radial-gradient(ellipse 65% 55% at 8% 25%, rgba(67,56,202,0.65) 0%, transparent 70%),
-          radial-gradient(ellipse 55% 50% at 88% 15%, rgba(6,148,162,0.55) 0%, transparent 70%),
-          radial-gradient(ellipse 50% 60% at 55% 92%, rgba(109,40,217,0.45) 0%, transparent 70%),
-          radial-gradient(ellipse 40% 35% at 25% 70%, rgba(124,58,237,0.35) 0%, transparent 70%),
-          linear-gradient(160deg, #4338ca 0%, #6366f1 30%, #0891b2 65%, #7c3aed 100%)
-        `,
-      }}>
-
-        {/* Subtle noise texture layer */}
-        <div className="absolute inset-0 opacity-30 pointer-events-none"
-          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E\")" }}
-        />
-
-        {/* ── HERO CONTENT — pt accounts for fixed header ── */}
-        <section className="relative z-10 pt-44 pb-10 px-6 text-center">
-          <div className="max-w-3xl mx-auto">
-
-            {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-extrabold text-white leading-[1.1] tracking-tight mb-6 drop-shadow-sm">
-              Gérez tout votre business,
-              <br />
-              <span className="text-white">au même endroit</span>
-            </h1>
-
-            {/* Subtitle */}
-            <p className="text-base sm:text-lg text-white/80 max-w-xl mx-auto mb-10 leading-relaxed">
-              Gestio réunit CRM, projets, devis, facturation et comptabilité dans une plateforme 100% en français, pensée pour le marché africain.
-            </p>
-
-            {/* CTA button */}
-            <Link
-              href="/inscription"
-              className="inline-flex items-center gap-2 bg-white font-bold px-10 py-4 rounded-full text-base shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all"
-              style={{ color: "#5E5CE6" }}
-            >
-              Commencer maintenant
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-
-            <p className="mt-5 text-xs text-white/60">
-              Aucune carte bancaire requise · Annulation à tout moment
-            </p>
+        {/* NAV */}
+        <div className="relative max-w-[1200px] mx-auto flex items-center justify-between px-8 py-7">
+          <Image src="/landing/gestio-logo.webp" alt="Gestio" width={130} height={34} style={{ height: "34px", width: "auto" }} unoptimized priority />
+          <div className="hidden md:flex items-center gap-9 text-[15px] font-medium" style={{ color: "#3d3763" }}>
+            <a href="#fonctionnalites" style={{ color: "#3d3763" }}>Fonctionnalités</a>
+            <a href="#tarifs" style={{ color: "#3d3763" }}>Tarifs</a>
+            <a href="#avis" style={{ color: "#3d3763" }}>Avis clients</a>
+            <a href="#faq" style={{ color: "#3d3763" }}>FAQ</a>
           </div>
-        </section>
+          <div className="flex items-center gap-3.5">
+            <Link href="/login" className="text-[15px] font-semibold" style={{ color: "#3d3763" }}>Connexion</Link>
+            <Link href="/inscription" className="whitespace-nowrap text-white font-semibold text-[15px] px-[22px] py-[11px] rounded-xl" style={{ background: GRADIENT_120, boxShadow: "0 8px 20px rgba(124,58,237,0.35)" }}>
+              Essai gratuit
+            </Link>
+          </div>
+        </div>
 
-        {/* ── AIDA CARDS
-              Mobile/tablet : flow normal dans le gradient (pas de chevauchement)
-              Desktop lg+   : absolute translate-y-1/2 qui chevauche la section blanche
-        ── */}
-        <div className="relative lg:absolute lg:bottom-0 lg:left-0 lg:right-0 lg:translate-y-1/2 z-20 px-4 sm:px-6 lg:px-10 pb-2 lg:pb-0">
-          <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {aidaCards.map((card) => (
-              <div key={card.stepLabel}
-                className="bg-white rounded-2xl p-5 shadow-xl border border-slate-100/80 flex flex-col gap-3 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+        {/* HERO CONTENT */}
+        <div className="relative max-w-[840px] mx-auto px-8 text-center" style={{ marginTop: "60px" }}>
+          <div className="inline-block rounded-full text-[13px] font-semibold mb-[22px]" style={{ padding: "7px 16px", background: "#ffffffaa", border: "1px solid #e3defc", color: "#6d28d9" }}>
+            Fait pour les entrepreneurs africains
+          </div>
+          <h1 className="font-extrabold" style={{ fontSize: "56px", lineHeight: 1.08, margin: "0 0 20px", letterSpacing: "-1.5px", color: "#181432" }}>
+            Gérez votre entreprise,<br />tout en un seul endroit
+          </h1>
+          <p className="mx-auto" style={{ fontSize: "18px", lineHeight: 1.6, color: "#5c5680", maxWidth: "600px", margin: "0 auto 34px" }}>
+            Factures, devis, clients, projets et comptabilité : Gestio réunit tous les outils dont votre TPE ou PME a besoin, en FCFA, sans complexité.
+          </p>
+          <div className="flex items-center justify-center" style={{ marginBottom: "56px" }}>
+            <Link href="/inscription" className="whitespace-nowrap text-white font-semibold text-[15px]" style={{ background: GRADIENT_120, padding: "14px 24px", borderRadius: "12px", boxShadow: "0 10px 24px rgba(124,58,237,0.35)" }}>
+              Démarrer gratuitement
+            </Link>
+          </div>
+        </div>
 
-                {/* Top: icon */}
-                <div className="flex items-start justify-end">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${card.iconBg}`}>
-                    <card.icon className={`w-4.5 h-4.5 ${card.iconColor}`} strokeWidth={2} />
-                  </div>
+        {/* MINI STAT CARDS */}
+        <div className="relative max-w-[1080px] mx-auto grid grid-cols-2 lg:grid-cols-4 gap-5 px-8" style={{ paddingBottom: "90px" }}>
+          {heroCards.map((c) => (
+            <div key={c.title} style={CARD_STYLE}>
+              <div style={iconWrapStyle(c.hue.light)}>
+                <c.Icon color={c.hue.stroke} />
+              </div>
+              <div className="text-sm font-bold mb-1.5" style={{ color: "#181432" }}>{c.title}</div>
+              <div className="text-[12.5px] leading-relaxed" style={{ color: "#8b85ab" }}>{c.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── STATS BAR ── */}
+      <div style={{ background: "#181432", padding: "34px 32px" }}>
+        <div className="max-w-[1000px] mx-auto grid grid-cols-2 lg:grid-cols-4 gap-5 text-center">
+          {stats.map((s) => (
+            <div key={s.label}>
+              <div className="font-extrabold" style={{ fontSize: "30px", background: GRADIENT_120, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
+                {s.value}
+              </div>
+              <div className="text-[13px] mt-1" style={{ color: "#a7a1c9" }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── FEATURE TABS ── */}
+      <div id="fonctionnalites" className="max-w-[1140px] mx-auto text-center" style={{ padding: "100px 32px 40px" }}>
+        <div className="inline-block rounded-full text-[13px] font-semibold mb-[18px]" style={{ padding: "6px 14px", background: "#f3effe", color: "#6d28d9" }}>
+          Fonctionnalités
+        </div>
+        <h2 className="font-extrabold" style={{ fontSize: "38px", letterSpacing: "-1px", margin: "0 0 14px", color: "#181432" }}>
+          Toute la gestion de votre activité,<br />réunie dans un seul outil
+        </h2>
+        <p className="mx-auto" style={{ fontSize: "16.5px", color: "#665f8c", maxWidth: "560px", margin: "0 auto 40px" }}>
+          Passez du devis à la facture payée sans jongler entre dix outils différents.
+        </p>
+        <FeatureTabs />
+      </div>
+
+      {/* ── FEATURE SPLIT ── */}
+      <div className="max-w-[1140px] mx-auto grid lg:grid-cols-2 gap-[70px] items-center" style={{ padding: "110px 32px" }}>
+        <div>
+          <div className="inline-block rounded-full text-[13px] font-semibold mb-[18px]" style={{ padding: "6px 14px", background: "#f3effe", color: "#6d28d9" }}>
+            Pensé pour l&apos;Afrique
+          </div>
+          <h2 className="font-extrabold" style={{ fontSize: "34px", letterSpacing: "-0.8px", margin: "0 0 18px", color: "#181432", lineHeight: 1.2 }}>
+            Un tableau de bord clair pour piloter votre chiffre d&apos;affaires
+          </h2>
+          <p style={{ fontSize: "16px", color: "#665f8c", lineHeight: 1.65, margin: "0 0 28px" }}>
+            Suivez vos revenus en FCFA, vos dépenses et vos tâches en cours en un coup d&apos;œil, sans tableur ni paperasse.
+          </p>
+          <div className="flex flex-col gap-5">
+            {bullets.map((b) => (
+              <div key={b.title} className="flex gap-3.5 items-start">
+                <div className="flex-none flex items-center justify-center text-white font-bold" style={{ width: "26px", height: "26px", borderRadius: "9px", background: GRADIENT_120, fontSize: "14px" }}>
+                  ✓
                 </div>
-
-                {/* Content */}
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 leading-snug mb-1.5">{card.title}</h3>
-                  <p className="text-xs text-slate-500 leading-relaxed">{card.desc}</p>
+                  <div className="font-bold" style={{ fontSize: "15.5px", color: "#181432", marginBottom: "3px" }}>{b.title}</div>
+                  <div style={{ fontSize: "14px", color: "#8b85ab", lineHeight: 1.55 }}>{b.desc}</div>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Image src="/landing/shot-dashboard.webp" alt="Tableau de bord Gestio" width={1140} height={700} className="block w-full h-auto" unoptimized />
+      </div>
 
-                {/* Step indicator */}
-                <div className="flex items-center gap-1 mt-auto pt-1">
-                  {["A", "I", "D", "A"].map((s, i) => (
-                    <div key={i}
-                      className={`h-1 flex-1 rounded-full transition-all ${s === card.step && i === aidaCards.indexOf(card) ? "bg-gradient-to-r from-violet-500 to-indigo-500" : "bg-slate-100"}`}
-                    />
+      {/* ── PRICING ── */}
+      <div id="tarifs" style={{ background: "#f6f4fe", padding: "110px 32px" }}>
+        <div className="max-w-[1000px] mx-auto text-center">
+          <div className="inline-block rounded-full text-[13px] font-semibold mb-[18px]" style={{ padding: "6px 14px", background: "#ffffff", color: "#6d28d9" }}>
+            Tarifs
+          </div>
+          <h2 className="font-extrabold" style={{ fontSize: "38px", letterSpacing: "-1px", margin: "0 0 14px", color: "#181432" }}>
+            Des offres simples, en FCFA
+          </h2>
+          <p style={{ fontSize: "16.5px", color: "#665f8c", margin: "0 0 56px" }}>
+            Changez de formule à tout moment selon la croissance de votre activité.
+          </p>
+
+          <div className="grid sm:grid-cols-3 gap-6 text-left">
+            {plans.map((plan) => (
+              <div
+                key={plan.name}
+                className="relative bg-white"
+                style={{
+                  borderRadius: "18px",
+                  padding: "32px 28px",
+                  border: plan.featured ? "2px solid #6d28d9" : "1px solid #ece8fb",
+                  boxShadow: plan.featured ? "0 20px 50px rgba(109,40,217,0.2)" : "0 10px 30px rgba(35,20,90,0.06)",
+                }}
+              >
+                {plan.featured && (
+                  <div className="absolute text-white font-bold" style={{ top: "-13px", right: "28px", background: GRADIENT_120, fontSize: "12px", padding: "5px 12px", borderRadius: "100px" }}>
+                    Populaire
+                  </div>
+                )}
+                <div className="font-bold" style={{ fontSize: "15px", color: "#181432", marginBottom: "10px" }}>{plan.name}</div>
+                <div className="font-extrabold" style={{ fontSize: "34px", color: "#181432", marginBottom: "2px" }}>{plan.price}</div>
+                <div style={{ fontSize: "13px", color: "#8b85ab", marginBottom: "24px" }}>{plan.period}</div>
+                <div className="flex flex-col gap-3" style={{ marginBottom: "28px" }}>
+                  {plan.features.map((f) => (
+                    <div key={f} className="flex gap-2.5 items-start" style={{ fontSize: "14px", color: "#4b4570" }}>
+                      <span className="font-bold" style={{ color: "#6d28d9" }}>✓</span>{f}
+                    </div>
                   ))}
                 </div>
+                <Link
+                  href="/inscription"
+                  className="block text-center font-bold"
+                  style={{
+                    padding: "13px", borderRadius: "12px", fontSize: "14.5px",
+                    background: plan.featured ? GRADIENT_120 : "#f3effe",
+                    color: plan.featured ? "#fff" : "#181432",
+                  }}
+                >
+                  Choisir {plan.name}
+                </Link>
               </div>
             ))}
           </div>
         </div>
       </div>
-      {/* Spacer desktop uniquement — compense le translate-y-1/2 des cards */}
-      <div className="hidden lg:block h-28 bg-white" />
 
-      {/* ── TRUST BAR ── */}
-      <section className="border-y border-slate-100 bg-slate-50 py-6">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 text-sm text-slate-500">
-            <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-indigo-500" /> Données sécurisées & hébergées en Europe</div>
-            <div className="hidden md:block w-px h-4 bg-slate-300" />
-            <div className="flex items-center gap-2"><CreditCard className="w-4 h-4 text-indigo-500" /> Wave · Orange Money · Free Money intégrés</div>
-            <div className="hidden md:block w-px h-4 bg-slate-300" />
-            <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-indigo-500" /> Interface 100% en français</div>
-            <div className="hidden md:block w-px h-4 bg-slate-300" />
-            <div className="flex items-center gap-2"><Headphones className="w-4 h-4 text-indigo-500" /> Support réactif basé au Sénégal</div>
+      {/* ── BENEFITS ── */}
+      <div id="avis" className="max-w-[1140px] mx-auto" style={{ padding: "110px 32px" }}>
+        <div className="text-center" style={{ marginBottom: "56px" }}>
+          <div className="inline-block rounded-full text-[13px] font-semibold mb-[18px]" style={{ padding: "6px 14px", background: "#f3effe", color: "#6d28d9" }}>
+            Pourquoi Gestio
           </div>
+          <h2 className="font-extrabold" style={{ fontSize: "38px", letterSpacing: "-1px", margin: "0 0 14px", color: "#181432" }}>
+            Conçu pour les entrepreneurs qui n&apos;ont pas de temps à perdre
+          </h2>
         </div>
-      </section>
-
-      {/* ── FEATURES ── */}
-      <section id="fonctionnalites" className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-3 block">Fonctionnalités</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-4">
-              Tout ce dont votre entreprise a besoin
-            </h2>
-            <p className="text-slate-500 max-w-xl mx-auto">
-              Une suite complète d'outils de gestion réunis dans une interface simple et intuitive.
-            </p>
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-7">
+          <div className="relative rounded-[20px] overflow-hidden" style={{ minHeight: "420px" }}>
+            <Image src="/landing/entrepreneur-photo.webp" alt="Entrepreneur utilisant Gestio" fill className="object-cover" unoptimized />
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((f) => (
-              <div key={f.title} className="group p-6 rounded-2xl border border-slate-100 bg-white hover:border-indigo-200 hover:shadow-lg transition-all cursor-default">
-                <div className={`inline-flex p-3 rounded-xl ${f.color} mb-4`}>
-                  <f.icon className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900 mb-2">{f.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── PRODUCT SHOWCASE 1 ── */}
-      <section className="py-24 px-6" style={{ background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)" }}>
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-3 block">Facturation</span>
-            <h2 className="text-3xl font-extrabold text-slate-900 mb-5 leading-tight">
-              Des devis et factures professionnels en quelques clics
-            </h2>
-            <p className="text-slate-600 mb-8 leading-relaxed">
-              Créez des documents conformes aux normes fiscales sénégalaises, envoyez-les par email ou WhatsApp et suivez les paiements en temps réel. Vos clients peuvent payer directement par Wave ou Orange Money.
-            </p>
-            <ul className="space-y-3 mb-8">
-              {["Devis convertibles en factures en 1 clic", "Rappels automatiques de paiement", "Export PDF personnalisé avec votre logo"].map((item) => (
-                <li key={item} className="flex items-center gap-3 text-sm text-slate-700">
-                  <CheckCircle className="w-4 h-4 text-indigo-500 shrink-0" />
-                  {item}
-                </li>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5" style={{ marginBottom: "20px" }}>
+              {benefits.map((b) => (
+                <div key={b.title} style={CARD_STYLE}>
+                  <div style={iconWrapStyle(b.hue.light)}>
+                    <b.Icon color={b.hue.stroke} />
+                  </div>
+                  <div className="font-bold" style={{ fontSize: "15.5px", color: "#181432", marginBottom: "6px" }}>{b.title}</div>
+                  <div style={{ fontSize: "13px", color: "#665f8c", lineHeight: 1.55 }}>{b.desc}</div>
+                </div>
               ))}
-            </ul>
-            <Link href="/inscription" className="inline-flex items-center gap-2 text-sm font-semibold text-white px-6 py-3 rounded-xl transition-all hover:opacity-90"
-              style={{ background: "linear-gradient(135deg,#5E5CE6,#7C3AED)" }}>
-              Essayer gratuitement <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="flex items-center justify-center">
-            <Image
-              src="/application%20de%20gestion%20entreprise%20senegal%20Gestio00005.png"
-              alt="Module Facturation Gestio"
-              width={720} height={480}
-              className="w-full object-contain drop-shadow-xl rounded-2xl"
-              unoptimized
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ── PRODUCT SHOWCASE 2 ── */}
-      <section className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
-          <div className="relative order-2 lg:order-1">
-            <div className="absolute -inset-4 rounded-3xl opacity-20 bg-emerald-400" />
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-100">
-              <Image
-                src="/application%20de%20gestion%20entreprise%20senegal%20Gestio00003.png"
-                alt="CRM & Gestion clients Gestio"
-                width={720} height={480}
-                className="w-full object-cover"
-                unoptimized
-              />
             </div>
-          </div>
-          <div className="order-1 lg:order-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-emerald-600 mb-3 block">CRM & Clients</span>
-            <h2 className="text-3xl font-extrabold text-slate-900 mb-5 leading-tight">
-              Une vue complète sur chaque client
-            </h2>
-            <p className="text-slate-600 mb-8 leading-relaxed">
-              Centralisez toutes les informations de vos clients — historique des transactions, devis, projets et communications. Ne laissez plus aucune opportunité passer.
-            </p>
-            <ul className="space-y-3 mb-8">
-              {["Fiche client complète & historique", "Import de contacts en masse", "Segmentation & tags personnalisés", "Statistiques par client"].map((item) => (
-                <li key={item} className="flex items-center gap-3 text-sm text-slate-700">
-                  <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <Link href="/inscription" className="inline-flex items-center gap-2 text-sm font-semibold text-white px-6 py-3 rounded-xl transition-all hover:opacity-90 bg-emerald-600">
-              Essayer gratuitement <ArrowRight className="w-4 h-4" />
+            <Link href="/inscription" className="inline-block text-white font-bold" style={{ background: GRADIENT_120, fontSize: "15px", padding: "14px 28px", borderRadius: "12px", boxShadow: "0 10px 24px rgba(124,58,237,0.3)" }}>
+              Démarrer avec Gestio →
             </Link>
           </div>
         </div>
-      </section>
-
-      {/* ── PRODUCT SHOWCASE 3 ── */}
-      <section className="py-24 px-6 bg-slate-50">
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-orange-500 mb-3 block">Comptabilité</span>
-            <h2 className="text-3xl font-extrabold text-slate-900 mb-5 leading-tight">
-              Vos finances sous contrôle en temps réel
-            </h2>
-            <p className="text-slate-600 mb-8 leading-relaxed">
-              Suivez vos recettes, dépenses et trésorerie depuis un tableau de bord clair. Générez des rapports financiers complets et prenez de meilleures décisions pour votre activité.
-            </p>
-            <ul className="space-y-3 mb-8">
-              {["Tableau de bord financier en temps réel", "Suivi des dépenses par catégorie", "Rapport financier PDF téléchargeable", "Calcul automatique de la trésorerie"].map((item) => (
-                <li key={item} className="flex items-center gap-3 text-sm text-slate-700">
-                  <CheckCircle className="w-4 h-4 text-orange-500 shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <Link href="/inscription" className="inline-flex items-center gap-2 text-sm font-semibold text-white px-6 py-3 rounded-xl transition-all hover:opacity-90 bg-orange-500">
-              Essayer gratuitement <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="relative">
-            <div className="absolute -inset-4 rounded-3xl opacity-20 bg-orange-300" />
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-100">
-              <Image
-                src="/application%20de%20gestion%20entreprise%20senegal%20Gestio00004.png"
-                alt="Comptabilité Gestio"
-                width={720} height={480}
-                className="w-full object-cover"
-                unoptimized
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── SCREENSHOTS GALLERY ── */}
-      <section className="py-20 px-6 bg-white overflow-hidden">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl font-extrabold text-slate-900 mb-3">Découvrez chaque module</h2>
-            <p className="text-slate-500 text-sm">Une interface pensée pour être simple et efficace</p>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { src: "/application%20de%20gestion%20entreprise%20senegal%20Gestio00005.png", alt: "Gestion de projets" },
-              { src: "/application%20de%20gestion%20entreprise%20senegal%20Gestio00006.png", alt: "Planning et tâches" },
-              { src: "/application%20de%20gestion%20entreprise%20senegal%20Gestio00003.png", alt: "Module clients" },
-            ].map((img) => (
-              <div key={img.src} className="group relative rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-lg transition-all">
-                <Image src={img.src} alt={img.alt} width={480} height={300} className="w-full object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ── */}
-      <section id="temoignages" className="py-24 px-6" style={{ background: "linear-gradient(135deg, #f5f3ff, #ede9fe)" }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-14">
-            <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-3 block">Témoignages</span>
-            <h2 className="text-3xl font-extrabold text-slate-900">Ce qu'en disent nos clients</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <div key={t.name} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                <div className="flex items-center gap-1 mb-4">
-                  {Array.from({ length: t.stars }).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-sm text-slate-600 leading-relaxed mb-5">&ldquo;{t.text}&rdquo;</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white"
-                    style={{ background: "linear-gradient(135deg,#5E5CE6,#7C3AED)" }}>
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{t.name}</p>
-                    <p className="text-xs text-slate-500">{t.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── PRICING ── */}
-      <section id="tarifs" className="py-24 px-6 bg-white">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
-            <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-3 block">Tarifs</span>
-            <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Des prix adaptés à votre activité</h2>
-            <p className="text-slate-500">Commencez gratuitement. Upgradez quand vous êtes prêt.</p>
-          </div>
-          <div className="grid sm:grid-cols-3 gap-6">
-            {plans.map((plan) => (
-              <div key={plan.name} className={`relative rounded-2xl p-7 flex flex-col ${plan.badge === "Populaire" ? "border-2 border-indigo-500 shadow-xl" : "border border-slate-200"}`}>
-                {plan.badge && (
-                  <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs font-bold px-4 py-1 rounded-full text-white"
-                    style={{ background: plan.badge === "Populaire" ? "linear-gradient(135deg,#5E5CE6,#7C3AED)" : "#0f172a" }}>
-                    {plan.badge}
-                  </span>
-                )}
-                <div className="mb-6">
-                  <h3 className="text-base font-bold text-slate-900 mb-1">{plan.name}</h3>
-                  <p className="text-xs text-slate-500 mb-4">{plan.desc}</p>
-                  <div className="flex items-end gap-1">
-                    <span className="text-3xl font-extrabold text-slate-900">{plan.price}</span>
-                    <span className="text-sm text-slate-500 mb-1">FCFA / {plan.period}</span>
-                  </div>
-                </div>
-                <ul className="space-y-2.5 mb-8 flex-1">
-                  {plan.features.map((feat) => (
-                    <li key={feat} className="flex items-center gap-2 text-sm text-slate-600">
-                      <CheckCircle className="w-4 h-4 text-indigo-500 shrink-0" />
-                      {feat}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/inscription"
-                  className={`block w-full py-3 rounded-xl text-sm font-semibold text-center transition-all ${plan.badge === "Populaire" ? "text-white hover:opacity-90" : "border border-slate-200 text-slate-700 hover:bg-slate-50"}`}
-                  style={plan.badge === "Populaire" ? { background: "linear-gradient(135deg,#5E5CE6,#7C3AED)" } : undefined}>
-                  Commencer
-                </Link>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-xs text-slate-400 mt-8">
-            Tous les plans incluent un essai gratuit de 7 jours sans carte bancaire. <br />
-            Paiement via Wave, Orange Money, virement ou carte bancaire.
-          </p>
-        </div>
-      </section>
+      </div>
 
       {/* ── FAQ ── */}
-      <section className="py-24 px-6 bg-slate-50">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
-            <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-3 block">FAQ</span>
-            <h2 className="text-3xl font-extrabold text-slate-900">Questions fréquentes</h2>
-          </div>
-          <FaqAccordion />
-        </div>
-      </section>
-
-      {/* ── CONTACT ── */}
-      <section id="contact" className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-16 items-start">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-3 block">Contact</span>
-            <h2 className="text-3xl font-extrabold text-slate-900 mb-5">
-              Une question ? <br />Parlons-en.
-            </h2>
-            <p className="text-slate-600 mb-10 leading-relaxed">
-              Notre équipe basée à Saly Portudal, Sénégal, est disponible pour répondre à toutes vos questions et vous accompagner dans la prise en main de Gestio.
-            </p>
-            <div className="space-y-6">
-              <a href="tel:+221777762522" className="flex items-center gap-4 group">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#5E5CE6,#7C3AED)" }}>
-                  <Phone className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 mb-0.5">Téléphone</p>
-                  <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">+221 77 776 25 22</p>
-                </div>
-              </a>
-              <a href="mailto:contact@gestio.sn" className="flex items-center gap-4 group">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#5E5CE6,#7C3AED)" }}>
-                  <Mail className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 mb-0.5">Email</p>
-                  <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">contact@gestio.sn</p>
-                </div>
-              </a>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#5E5CE6,#7C3AED)" }}>
-                  <MapPin className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 mb-0.5">Adresse</p>
-                  <p className="text-sm font-semibold text-slate-900">Saly Portudal, Sénégal</p>
-                </div>
-              </div>
+      <div id="faq" style={{ background: "#f6f4fe", padding: "110px 32px" }}>
+        <div className="max-w-[760px] mx-auto">
+          <div className="text-center" style={{ marginBottom: "50px" }}>
+            <div className="inline-block rounded-full text-[13px] font-semibold mb-[18px]" style={{ padding: "6px 14px", background: "#ffffff", color: "#6d28d9" }}>
+              FAQ
             </div>
-          </div>
-          <div className="bg-slate-50 rounded-3xl p-8 border border-slate-100">
-            <h3 className="text-lg font-bold text-slate-900 mb-6">Envoyez-nous un message</h3>
-            <ContactForm />
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA BANNER ── */}
-      <section className="mx-4 sm:mx-6 lg:mx-10 mb-10 rounded-3xl overflow-hidden" style={{
-        background: `
-          radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.5) 0%, transparent 60%),
-          radial-gradient(ellipse at 80% 20%, rgba(6,182,212,0.4) 0%, transparent 60%),
-          linear-gradient(135deg, #4338CA 0%, #5E5CE6 50%, #7C3AED 100%)
-        `,
-      }}>
-        <div className="relative px-8 py-16 text-center overflow-hidden">
-          <div className="relative max-w-2xl mx-auto">
-            <h2 className="text-3xl font-extrabold text-white mb-4">
-              Prêt à simplifier votre gestion ?
+            <h2 className="font-extrabold" style={{ fontSize: "34px", letterSpacing: "-0.8px", margin: 0, color: "#181432" }}>
+              Vos questions, nos réponses
             </h2>
-            <p className="text-white/80 mb-8 text-base">
-              Rejoignez les entrepreneurs qui pilotent leur activité avec Gestio. <br />
-              7 jours d'essai gratuit, sans carte bancaire.
-            </p>
-            <Link href="/inscription"
-              className="inline-flex items-center gap-2 bg-white font-bold px-8 py-4 rounded-full text-sm hover:shadow-xl hover:-translate-y-0.5 transition-all"
-              style={{ color: "#5E5CE6" }}>
-              Démarrer mon essai gratuit
-              <ArrowRight className="w-4 h-4" />
+          </div>
+          <FaqSection />
+        </div>
+      </div>
+
+      {/* ── CTA BAND ── */}
+      <div className="relative overflow-hidden text-center" style={{ background: GRADIENT, padding: "100px 32px" }}>
+        <div className="absolute" style={{ top: "-160px", left: "-100px", width: "420px", height: "420px", borderRadius: "50%", background: "radial-gradient(circle,rgba(255,255,255,0.18),transparent 70%)" }} />
+        <div className="relative max-w-[960px] mx-auto">
+          <h2 className="font-extrabold text-white" style={{ fontSize: "36px", letterSpacing: "-0.8px", margin: "0 0 40px" }}>
+            Ils gèrent déjà leur entreprise avec Gestio
+          </h2>
+        </div>
+        <div className="relative">
+          <TestimonialsMarquee />
+        </div>
+        <div className="relative max-w-[960px] mx-auto">
+          <div className="flex items-center justify-center flex-wrap gap-3.5">
+            <Link href="/inscription" className="whitespace-nowrap text-white font-bold" style={{ background: "#181432", fontSize: "15px", padding: "14px 26px", borderRadius: "12px" }}>
+              Essai gratuit — 14 jours
             </Link>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* ── FOOTER ── */}
-      <footer className="bg-slate-900 text-slate-400 px-6 py-12">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-10">
-            <div className="lg:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <Image src="/GESIO-logo-app.png" alt="Gestio" width={28} height={28} className="rounded-lg" />
-                <span className="text-lg font-extrabold text-white">Gestio</span>
-              </div>
-              <p className="text-sm leading-relaxed max-w-xs">
-                La plateforme de gestion tout-en-un pour les entrepreneurs africains. CRM, facturation, projets et comptabilité en un seul outil.
+      <div style={{ background: "#12102b", padding: "70px 32px 32px" }}>
+        <div className="max-w-[1140px] mx-auto">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr] gap-10" style={{ marginBottom: "56px" }}>
+            <div>
+              <Image src="/landing/gestio-logo.webp" alt="Gestio" width={110} height={30} style={{ height: "30px", width: "auto", marginBottom: "16px" }} unoptimized />
+              <p style={{ fontSize: "14px", color: "#8b85ab", lineHeight: 1.6, maxWidth: "260px" }}>
+                La plateforme de gestion tout-en-un pour les entrepreneurs et PME francophones.
               </p>
-              <div className="flex items-center gap-3 mt-5 text-sm">
-                <a href="tel:+221777762522" className="hover:text-white transition-colors">+221 77 776 25 22</a>
-                <span>·</span>
-                <a href="mailto:contact@gestio.sn" className="hover:text-white transition-colors">contact@gestio.sn</a>
+            </div>
+            {Object.entries(footerLinks).map(([title, links]) => (
+              <div key={title}>
+                <div className="font-bold text-white" style={{ fontSize: "13px", marginBottom: "16px" }}>{title}</div>
+                <div className="flex flex-col gap-2.5" style={{ fontSize: "14px", color: "#a7a1c9" }}>
+                  {links.map((l) => (
+                    <a key={l} href="#" style={{ color: "#a7a1c9" }}>{l}</a>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div>
-              <h4 className="text-white text-sm font-semibold mb-4">Produit</h4>
-              <ul className="space-y-2.5 text-sm">
-                {[["#fonctionnalites", "Fonctionnalités"], ["#tarifs", "Tarifs"], ["/inscription", "Essai gratuit"], ["/login", "Connexion"]].map(([href, label]) => (
-                  <li key={label}><a href={href} className="hover:text-white transition-colors">{label}</a></li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white text-sm font-semibold mb-4">Support</h4>
-              <ul className="space-y-2.5 text-sm">
-                {[["#contact", "Nous contacter"], ["#", "Documentation"], ["#", "Tutoriels"], ["#", "Status"]].map(([href, label]) => (
-                  <li key={label}><a href={href} className="hover:text-white transition-colors">{label}</a></li>
-                ))}
-              </ul>
-            </div>
+            ))}
           </div>
-          <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-            <p>&copy; {new Date().getFullYear()} JC Agence — Saly Portudal, Sénégal. Tous droits réservés.</p>
-            <div className="flex items-center gap-6">
-              <a href="#" className="hover:text-white transition-colors">Politique de confidentialité</a>
-              <a href="#" className="hover:text-white transition-colors">CGU</a>
+          <div className="flex justify-between" style={{ borderTop: "1px solid #2a2750", paddingTop: "24px", fontSize: "13px", color: "#736d99" }}>
+            <div>© {new Date().getFullYear()} Gestio. Tous droits réservés.</div>
+            <div className="flex gap-6">
+              <a href="#" style={{ color: "#736d99" }}>Confidentialité</a>
+              <a href="#" style={{ color: "#736d99" }}>Conditions</a>
             </div>
           </div>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
