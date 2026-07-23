@@ -49,6 +49,14 @@ export default function ParametresPage() {
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
+  const [userRole, setUserRole] = useState(undefined); // undefined = loading
+
+  useEffect(() => {
+    fetch("/api/subscription/data")
+      .then(r => r.json())
+      .then(({ userRole }) => setUserRole(userRole ?? null))
+      .catch(() => setUserRole(null));
+  }, []);
 
   // Load org data from server API (bypasses RLS)
   useEffect(() => {
@@ -494,39 +502,49 @@ export default function ParametresPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted mb-6">Modifiez votre mot de passe de connexion.</p>
-              <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
-                <Input
-                  id="newPassword"
-                  label="Nouveau mot de passe"
-                  type="password"
-                  placeholder="8 caractères minimum"
-                  value={pwForm.newPassword}
-                  onChange={e => setPwForm({ ...pwForm, newPassword: e.target.value })}
-                  required
-                />
-                <Input
-                  id="confirmPassword"
-                  label="Confirmer le mot de passe"
-                  type="password"
-                  placeholder="••••••••"
-                  value={pwForm.confirmPassword}
-                  onChange={e => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
-                  required
-                />
-                {pwError && (
-                  <p className="text-sm text-danger-500 bg-danger-50 px-3 py-2 rounded-lg">{pwError}</p>
-                )}
-                {pwSuccess && (
-                  <p className="text-sm text-success-500 bg-success-50 px-3 py-2 rounded-lg">✓ Mot de passe mis à jour avec succès !</p>
-                )}
-                <div className="flex items-center gap-3">
-                  <Button type="submit" disabled={pwLoading}>
-                    <Lock className="w-4 h-4" />
-                    {pwLoading ? "Enregistrement..." : "Changer le mot de passe"}
-                  </Button>
-                </div>
-              </form>
+              {userRole === undefined ? (
+                <p className="text-sm text-muted">Chargement...</p>
+              ) : userRole !== "proprietaire" ? (
+                <p className="text-sm text-muted bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                  Seul le propriétaire du compte peut modifier ce mot de passe. Contactez votre administrateur si vous l&apos;avez oublié.
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm text-muted mb-6">Modifiez votre mot de passe de connexion.</p>
+                  <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
+                    <Input
+                      id="newPassword"
+                      label="Nouveau mot de passe"
+                      type="password"
+                      placeholder="8 caractères minimum"
+                      value={pwForm.newPassword}
+                      onChange={e => setPwForm({ ...pwForm, newPassword: e.target.value })}
+                      required
+                    />
+                    <Input
+                      id="confirmPassword"
+                      label="Confirmer le mot de passe"
+                      type="password"
+                      placeholder="••••••••"
+                      value={pwForm.confirmPassword}
+                      onChange={e => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                      required
+                    />
+                    {pwError && (
+                      <p className="text-sm text-danger-500 bg-danger-50 px-3 py-2 rounded-lg">{pwError}</p>
+                    )}
+                    {pwSuccess && (
+                      <p className="text-sm text-success-500 bg-success-50 px-3 py-2 rounded-lg">✓ Mot de passe mis à jour avec succès !</p>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <Button type="submit" disabled={pwLoading}>
+                        <Lock className="w-4 h-4" />
+                        {pwLoading ? "Enregistrement..." : "Changer le mot de passe"}
+                      </Button>
+                    </div>
+                  </form>
+                </>
+              )}
             </CardContent>
           </Card>
         )}

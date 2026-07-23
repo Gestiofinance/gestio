@@ -27,14 +27,14 @@ import { useSidebar } from "@/contexts/sidebar-context";
 
 const navigation = [
   { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Clients", href: "/dashboard/clients", icon: Users },
-  { name: "Projets", href: "/dashboard/projets", icon: FolderKanban },
-  { name: "Tâches", href: "/dashboard/taches", icon: CheckSquare },
-  { name: "Planning", href: "/dashboard/planning", icon: Calendar },
-  { name: "Devis", href: "/dashboard/devis", icon: FileText },
-  { name: "Factures", href: "/dashboard/factures", icon: Receipt },
-  { name: "Comptabilité", href: "/dashboard/comptabilite", icon: PieChart },
-  { name: "Signature", href: "/dashboard/signature", icon: PenTool },
+  { name: "Clients", href: "/dashboard/clients", icon: Users, moduleKey: "clients" },
+  { name: "Projets", href: "/dashboard/projets", icon: FolderKanban, moduleKey: "projets" },
+  { name: "Tâches", href: "/dashboard/taches", icon: CheckSquare, moduleKey: "taches" },
+  { name: "Planning", href: "/dashboard/planning", icon: Calendar, moduleKey: "planning" },
+  { name: "Devis", href: "/dashboard/devis", icon: FileText, moduleKey: "devis" },
+  { name: "Factures", href: "/dashboard/factures", icon: Receipt, moduleKey: "factures" },
+  { name: "Comptabilité", href: "/dashboard/comptabilite", icon: PieChart, moduleKey: "comptabilite" },
+  { name: "Signature", href: "/dashboard/signature", icon: PenTool, moduleKey: "signature" },
   { name: "Équipe", href: "/dashboard/equipe", icon: UserCog },
   { name: "Paramètres", href: "/dashboard/parametres", icon: Settings },
   { name: "Abonnement", href: "/dashboard/abonnement", icon: CreditCard },
@@ -42,9 +42,17 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { signOut, profile, user } = useAuth();
+  const { signOut, profile, user, loading } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const { mobileOpen, setMobileOpen } = useSidebar();
+
+  const isOwner = profile?.role === "proprietaire";
+  const allowedModules = profile?.allowed_modules || [];
+  const visibleNavigation = navigation.filter((item) => {
+    if (!item.moduleKey) return true;
+    if (loading || isOwner) return true;
+    return allowedModules.includes(item.moduleKey);
+  });
 
   return (
     <>
@@ -89,7 +97,7 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navigation.map((item) => {
+          {visibleNavigation.map((item) => {
             const isActive =
               item.href === "/dashboard"
                 ? pathname === "/dashboard"

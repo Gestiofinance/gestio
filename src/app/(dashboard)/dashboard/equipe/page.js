@@ -26,6 +26,24 @@ const roleLabels = {
   collaborateur: "Collaborateur", lecture_seule: "Lecture seule",
 };
 
+const MODULES = [
+  { key: "clients", label: "Clients" },
+  { key: "projets", label: "Projets" },
+  { key: "taches", label: "Tâches" },
+  { key: "planning", label: "Planning" },
+  { key: "devis", label: "Devis" },
+  { key: "factures", label: "Factures" },
+  { key: "comptabilite", label: "Comptabilité" },
+  { key: "signature", label: "Signature" },
+];
+
+const ALL_MODULE_KEYS = MODULES.map((m) => m.key);
+
+function memberBadgeLabel(member) {
+  if (member.role === "proprietaire") return "Administrateur";
+  return member.job_title || roleLabels[member.role] || member.role;
+}
+
 function UpsellGate({ plan }) {
   const router = useRouter();
   const isPlanKnown = !!plan;
@@ -73,7 +91,9 @@ export default function EquipePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const [addForm, setAddForm] = useState({ full_name: "", email: "", password: "" });
+  const [addForm, setAddForm] = useState({
+    full_name: "", email: "", password: "", job_title: "", allowed_modules: [...ALL_MODULE_KEYS],
+  });
 
   useEffect(() => {
     async function init() {
@@ -114,6 +134,8 @@ export default function EquipePage() {
           full_name: addForm.full_name,
           email: addForm.email,
           password: addForm.password,
+          job_title: addForm.job_title,
+          allowed_modules: addForm.allowed_modules,
         }),
       });
       const json = await res.json();
@@ -124,7 +146,7 @@ export default function EquipePage() {
       }
       await loadMembers();
       setShowAdd(false);
-      setAddForm({ full_name: "", email: "", password: "" });
+      setAddForm({ full_name: "", email: "", password: "", job_title: "", allowed_modules: [...ALL_MODULE_KEYS] });
     } catch (e) {
       setError("Une erreur est survenue.");
     }
@@ -176,7 +198,7 @@ export default function EquipePage() {
                 </p>
               </div>
               {isOwner && (
-                <Button onClick={() => { setShowAdd(true); setAddForm({ full_name: "", email: "", password: "" }); setError(""); }}>
+                <Button onClick={() => { setShowAdd(true); setAddForm({ full_name: "", email: "", password: "", job_title: "", allowed_modules: [...ALL_MODULE_KEYS] }); setError(""); }}>
                   <UserPlus className="w-4 h-4" /> Ajouter un membre
                 </Button>
               )}
@@ -209,7 +231,7 @@ export default function EquipePage() {
                             <p className="text-xs text-muted">{member.email}</p>
                             <Badge variant={roleColors[member.role]} className="mt-1">
                               {member.role === "proprietaire" && <Crown className="w-3 h-3 mr-1" />}
-                              {roleLabels[member.role] || member.role}
+                              {memberBadgeLabel(member)}
                             </Badge>
                           </div>
                         </div>
@@ -264,8 +286,47 @@ export default function EquipePage() {
             onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
             required
           />
+          <Input
+            id="add_job_title"
+            label="Poste"
+            placeholder="Ex. Comptable, Commercial, Assistante..."
+            value={addForm.job_title}
+            onChange={(e) => setAddForm({ ...addForm, job_title: e.target.value })}
+            required
+          />
           <p className="text-xs text-muted">
-            Le collaborateur pourra se connecter avec ces identifiants et modifier son mot de passe depuis son profil.
+            Ce titre s&apos;affichera comme badge sur la fiche du membre.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">Modules accessibles</label>
+            <div className="grid grid-cols-2 gap-2">
+              {MODULES.map((m) => {
+                const checked = addForm.allowed_modules.includes(m.key);
+                return (
+                  <label key={m.key} className="flex items-center gap-2 text-sm text-slate-600 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        setAddForm((f) => ({
+                          ...f,
+                          allowed_modules: e.target.checked
+                            ? [...f.allowed_modules, m.key]
+                            : f.allowed_modules.filter((k) => k !== m.key),
+                        }));
+                      }}
+                      className="accent-primary-500"
+                    />
+                    {m.label}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <p className="text-xs text-muted">
+            Le collaborateur pourra se connecter avec ces identifiants. Seul le propriétaire du compte peut modifier ce mot de passe.
           </p>
 
           {error && <p className="text-sm text-danger-500 bg-danger-50 px-3 py-2 rounded-lg">{error}</p>}
@@ -274,7 +335,7 @@ export default function EquipePage() {
             <Button variant="secondary" onClick={() => setShowAdd(false)}>Annuler</Button>
             <Button
               onClick={handleAddMember}
-              disabled={saving || !addForm.full_name || !addForm.email || !addForm.password}
+              disabled={saving || !addForm.full_name || !addForm.email || !addForm.password || !addForm.job_title}
             >
               {saving ? "Création..." : "Créer le compte"}
             </Button>

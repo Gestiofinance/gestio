@@ -23,7 +23,7 @@ export async function GET() {
 
     const { data: members, error } = await admin
       .from("profiles")
-      .select("id, full_name, email, role, is_active, created_at, organization_id")
+      .select("id, full_name, email, role, job_title, allowed_modules, is_active, created_at, organization_id")
       .eq("organization_id", orgId)
       .order("created_at");
 
@@ -45,9 +45,9 @@ export async function POST(request) {
     const orgId = await getOrgId(admin, user.id);
     if (!orgId) return NextResponse.json({ error: "Organisation introuvable" }, { status: 400 });
 
-    const { full_name, email, password } = await request.json();
-    if (!full_name || !email || !password) {
-      return NextResponse.json({ error: "Nom, email et mot de passe requis" }, { status: 400 });
+    const { full_name, email, password, job_title, allowed_modules } = await request.json();
+    if (!full_name || !email || !password || !job_title) {
+      return NextResponse.json({ error: "Nom, email, mot de passe et poste requis" }, { status: 400 });
     }
 
     // Create the auth user server-side — does NOT sign in the current user
@@ -67,6 +67,8 @@ export async function POST(request) {
       full_name,
       organization_id: orgId,
       role: "collaborateur",
+      job_title,
+      allowed_modules: Array.isArray(allowed_modules) ? allowed_modules : [],
       is_active: true,
     }).eq("id", newUser.user.id);
 
