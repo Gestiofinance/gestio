@@ -3,6 +3,7 @@ import Image from "next/image";
 import FeatureTabs from "@/components/landing/FeatureTabs";
 import FaqSection from "@/components/landing/FaqSection";
 import TestimonialsMarquee from "@/components/landing/TestimonialsMarquee";
+import PricingSection from "@/components/landing/PricingSection";
 
 const GRADIENT = "linear-gradient(135deg,#4f46e5,#9333ea)";
 const GRADIENT_120 = "linear-gradient(120deg,#4f46e5,#9333ea)";
@@ -128,21 +129,6 @@ const bullets = [
   { title: "Suivi du chiffre d'affaires", desc: "Visualisez l'évolution de vos revenus mois après mois." },
   { title: "Gestion des tâches à faire", desc: "Priorités, échéances et statuts toujours à jour." },
   { title: "Factures et devis liés", desc: "Retrouvez en un clic toutes les dernières factures émises." },
-];
-
-const plans = [
-  {
-    name: "Essentiel", price: "5 000 FCFA", period: "par mois", featured: false,
-    features: ["1 utilisateur", "Factures & devis illimités", "Jusqu'à 20 clients", "Support par email"],
-  },
-  {
-    name: "Pro", price: "15 000 FCFA", period: "par mois", featured: true,
-    features: ["5 utilisateurs", "Clients & projets illimités", "Comptabilité & rapports", "Planning et tâches d'équipe", "Support prioritaire"],
-  },
-  {
-    name: "Entreprise", price: "35 000 FCFA", period: "par mois", featured: false,
-    features: ["Utilisateurs illimités", "Toutes les fonctionnalités Pro", "Accès API", "Accompagnement dédié"],
-  },
 ];
 
 const benefits = [
@@ -286,47 +272,7 @@ export default function HomePage() {
             Changez de formule à tout moment selon la croissance de votre activité.
           </p>
 
-          <div className="grid sm:grid-cols-3 gap-6 text-left">
-            {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className="relative bg-white"
-                style={{
-                  borderRadius: "18px",
-                  padding: "32px 28px",
-                  border: plan.featured ? "2px solid #6d28d9" : "1px solid #ece8fb",
-                  boxShadow: plan.featured ? "0 20px 50px rgba(109,40,217,0.2)" : "0 10px 30px rgba(35,20,90,0.06)",
-                }}
-              >
-                {plan.featured && (
-                  <div className="absolute text-white font-bold" style={{ top: "-13px", right: "28px", background: GRADIENT_120, fontSize: "12px", padding: "5px 12px", borderRadius: "100px" }}>
-                    Populaire
-                  </div>
-                )}
-                <div className="font-bold" style={{ fontSize: "15px", color: "#181432", marginBottom: "10px" }}>{plan.name}</div>
-                <div className="font-extrabold" style={{ fontSize: "34px", color: "#181432", marginBottom: "2px" }}>{plan.price}</div>
-                <div style={{ fontSize: "13px", color: "#8b85ab", marginBottom: "24px" }}>{plan.period}</div>
-                <div className="flex flex-col gap-3" style={{ marginBottom: "28px" }}>
-                  {plan.features.map((f) => (
-                    <div key={f} className="flex gap-2.5 items-start" style={{ fontSize: "14px", color: "#4b4570" }}>
-                      <span className="font-bold" style={{ color: "#6d28d9" }}>✓</span>{f}
-                    </div>
-                  ))}
-                </div>
-                <Link
-                  href="/inscription"
-                  className="block text-center font-bold"
-                  style={{
-                    padding: "13px", borderRadius: "12px", fontSize: "14.5px",
-                    background: plan.featured ? GRADIENT_120 : "#f3effe",
-                    color: plan.featured ? "#fff" : "#181432",
-                  }}
-                >
-                  Choisir {plan.name}
-                </Link>
-              </div>
-            ))}
-          </div>
+          <PricingSection />
         </div>
       </div>
 
