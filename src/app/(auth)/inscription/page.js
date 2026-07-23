@@ -69,8 +69,9 @@ export default function InscriptionPage() {
       return;
     }
 
-    router.push("/dashboard");
-    router.refresh();
+    // Le compte doit être confirmé par email avant tout accès — pas de session en attendant
+    await supabase.auth.signOut();
+    router.push(`/verifier-email?email=${encodeURIComponent(formData.email)}`);
   }
 
   async function handleGoogleSignup() {

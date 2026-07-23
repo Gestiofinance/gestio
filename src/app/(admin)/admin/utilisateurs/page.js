@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { formatShortDate } from "@/lib/utils";
 import { getPlanLabel, getCycleLabel } from "@/lib/plans";
 import {
-  Building2, Search, Users, CheckCircle, Clock, XCircle, Eye,
+  Building2, Search, Users, CheckCircle, Clock, XCircle, Eye, EyeOff,
   Pencil, Key, PauseCircle, PlayCircle, Trash2, X, AlertTriangle,
 } from "lucide-react";
 
@@ -51,6 +51,7 @@ export default function AdminUsersPage() {
   const [editForm, setEditForm] = useState({ full_name: "", email: "" });
   const [pwModal, setPwModal] = useState(false);
   const [pwForm, setPwForm] = useState({ password: "", confirm: "" });
+  const [showPw, setShowPw] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -394,18 +395,29 @@ export default function AdminUsersPage() {
                 <h4 className="text-sm font-semibold text-white">Changer le mot de passe</h4>
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Nouveau mot de passe</label>
-                  <input
-                    type="password"
-                    value={pwForm.password}
-                    onChange={(e) => setPwForm({ ...pwForm, password: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none focus:border-primary-500"
-                    placeholder="Min. 6 caractères"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPw ? "text" : "password"}
+                      value={pwForm.password}
+                      onChange={(e) => setPwForm({ ...pwForm, password: e.target.value })}
+                      className="w-full px-3 py-2 pr-10 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none focus:border-primary-500"
+                      placeholder="Min. 6 caractères"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw((s) => !s)}
+                      tabIndex={-1}
+                      aria-label={showPw ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                    >
+                      {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Confirmer</label>
                   <input
-                    type="password"
+                    type={showPw ? "text" : "password"}
                     value={pwForm.confirm}
                     onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none focus:border-primary-500"

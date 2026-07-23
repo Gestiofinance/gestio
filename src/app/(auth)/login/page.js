@@ -38,6 +38,11 @@ export default function LoginPage() {
     });
 
     if (error) {
+      const isUnconfirmed = error.code === "email_not_confirmed" || /email not confirmed/i.test(error.message || "");
+      if (isUnconfirmed) {
+        router.push(`/verifier-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
       setError("Email ou mot de passe incorrect.");
       setLoading(false);
       return;
