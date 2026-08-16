@@ -47,10 +47,11 @@ export function Sidebar() {
   const { mobileOpen, setMobileOpen } = useSidebar();
 
   const isOwner = profile?.role === "proprietaire";
+  const isSuperAdmin = user?.app_metadata?.is_super_admin === true || profile?.is_super_admin === true;
   const allowedModules = profile?.allowed_modules || [];
   const visibleNavigation = navigation.filter((item) => {
     if (!item.moduleKey) return true;
-    if (loading || isOwner) return true;
+    if (loading || isOwner || isSuperAdmin) return true;
     return allowedModules.includes(item.moduleKey);
   });
 

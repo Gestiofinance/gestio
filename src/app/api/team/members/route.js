@@ -89,7 +89,7 @@ export async function PATCH(request) {
     const orgId = await getOrgId(admin, user.id);
     if (!orgId) return NextResponse.json({ error: "Organisation introuvable" }, { status: 400 });
 
-    const { memberId, is_active } = await request.json();
+    const { memberId, is_active, job_title, allowed_modules } = await request.json();
 
     // Ensure the target member belongs to the same org
     const { data: target } = await admin
@@ -105,7 +105,12 @@ export async function PATCH(request) {
       return NextResponse.json({ error: "Impossible de modifier le propriétaire" }, { status: 403 });
     }
 
-    await admin.from("profiles").update({ is_active }).eq("id", memberId);
+    const updates = {};
+    if (typeof is_active === "boolean") updates.is_active = is_active;
+    if (typeof job_title === "string") updates.job_title = job_title;
+    if (Array.isArray(allowed_modules)) updates.allowed_modules = allowed_modules;
+
+    await admin.from("profiles").update(updates).eq("id", memberId);
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error("PATCH /api/team/members error:", e);

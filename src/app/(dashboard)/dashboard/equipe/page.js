@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 // useAuth removed — role fetched from /api/subscription/data
 import {
   UserCog, UserPlus, Trash2, Crown, Lock, ArrowRight, Users,
-  CheckCircle2,
+  CheckCircle2, Pencil,
 } from "lucide-react";
 
 const roleColors = {
@@ -90,6 +90,8 @@ export default function EquipePage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [editMember, setEditMember] = useState(null);
+  const [editForm, setEditForm] = useState({ job_title: "", allowed_modules: [] });
 
   const [addForm, setAddForm] = useState({
     full_name: "", email: "", password: "", job_title: "", allowed_modules: [...ALL_MODULE_KEYS],
@@ -161,6 +163,39 @@ export default function EquipePage() {
     });
     await loadMembers();
     setDeleteConfirm(null);
+  }
+
+  function openEditMember(member) {
+    setEditMember(member);
+    setEditForm({ job_title: member.job_title || "", allowed_modules: member.allowed_modules || [] });
+    setError("");
+  }
+
+  async function handleEditMember() {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/team/members", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memberId: editMember.id,
+          job_title: editForm.job_title,
+          allowed_modules: editForm.allowed_modules,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error || "Une erreur est survenue.");
+        setSaving(false);
+        return;
+      }
+      await loadMembers();
+      setEditMember(null);
+    } catch (e) {
+      setError("Une erreur est survenue.");
+    }
+    setSaving(false);
   }
 
   const isOwner = userRole === "proprietaire";
@@ -236,13 +271,22 @@ export default function EquipePage() {
                           </div>
                         </div>
                         {isOwner && member.role !== "proprietaire" && (
-                          <button
-                            onClick={() => setDeleteConfirm(member)}
-                            className="p-1.5 rounded-lg hover:bg-danger-50 flex-shrink-0"
-                            title={member.is_active ? "Désactiver" : "Réactiver"}
-                          >
-                            <Trash2 className="w-4 h-4 text-slate-400 hover:text-danger-500" />
-                          </button>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                              onClick={() => openEditMember(member)}
+                              className="p-1.5 rounded-lg hover:bg-slate-100"
+                              title="Modifier les accès"
+                            >
+                              <Pencil className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(member)}
+                              className="p-1.5 rounded-lg hover:bg-danger-50"
+                              title={member.is_active ? "Désactiver" : "Réactiver"}
+                            >
+                              <Trash2 className="w-4 h-4 text-slate-400 hover:text-danger-500" />
+                            </button>
+                          </div>
                         )}
                       </div>
                       {member.is_active === false && (
@@ -338,6 +382,55 @@ export default function EquipePage() {
               disabled={saving || !addForm.full_name || !addForm.email || !addForm.password || !addForm.job_title}
             >
               {saving ? "Création..." : "Créer le compte"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit member modal */}
+      <Modal open={!!editMember} onClose={() => setEditMember(null)} title="Modifier les accès" size="md">
+        <div className="space-y-4">
+          <Input
+            id="edit_job_title"
+            label="Poste"
+            placeholder="Ex. Comptable, Commercial, Assistante..."
+            value={editForm.job_title}
+            onChange={(e) => setEditForm({ ...editForm, job_title: e.target.value })}
+          />
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">Modules accessibles</label>
+            <div className="grid grid-cols-2 gap-2">
+              {MODULES.map((m) => {
+                const checked = editForm.allowed_modules.includes(m.key);
+                return (
+                  <label key={m.key} className="flex items-center gap-2 text-sm text-slate-600 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        setEditForm((f) => ({
+                          ...f,
+                          allowed_modules: e.target.checked
+                            ? [...f.allowed_modules, m.key]
+                            : f.allowed_modules.filter((k) => k !== m.key),
+                        }));
+                      }}
+                      className="accent-primary-500"
+                    />
+                    {m.label}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {error && <p className="text-sm text-danger-500 bg-danger-50 px-3 py-2 rounded-lg">{error}</p>}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="secondary" onClick={() => setEditMember(null)}>Annuler</Button>
+            <Button onClick={handleEditMember} disabled={saving}>
+              {saving ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </div>
         </div>
