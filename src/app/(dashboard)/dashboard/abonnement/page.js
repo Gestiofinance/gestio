@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header";
 import { useAuth } from "@/hooks/useAuth";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { PLANS } from "@/lib/plans";
+import { getEffectiveSubscriptionStatus } from "@/lib/subscription";
 import {
   CreditCard, CheckCircle, Clock, AlertCircle, Zap, Users,
   Star, Shield, ArrowRight, Loader2, Check, Crown,
@@ -133,8 +134,10 @@ function AbonnementContent() {
     setPaying(null);
   }
 
+  const effectiveStatus = getEffectiveSubscriptionStatus(subscription);
+
   const isCurrentPlan = (planId) =>
-    subscription?.plan_id === planId && subscription?.status === "active";
+    subscription?.plan_id === planId && effectiveStatus === "active";
 
   const trialDaysLeft = subscription?.trial_end
     ? Math.max(0, Math.ceil((new Date(subscription.trial_end) - new Date()) / 86400000))
@@ -170,23 +173,25 @@ function AbonnementContent() {
 
         {/* Current subscription status */}
         {!loading && subscription && (
-          <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl border ${statusColors[subscription.status]}`}>
+          <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl border ${statusColors[effectiveStatus]}`}>
             <div className="flex items-center gap-3">
-              {subscription.status === "active" ? <CheckCircle className="w-5 h-5 shrink-0" /> :
-               subscription.status === "trial" ? <Clock className="w-5 h-5 shrink-0" /> :
+              {effectiveStatus === "active" ? <CheckCircle className="w-5 h-5 shrink-0" /> :
+               effectiveStatus === "trial" ? <Clock className="w-5 h-5 shrink-0" /> :
                <AlertCircle className="w-5 h-5 shrink-0" />}
               <div>
-                <p className="font-semibold text-sm">{statusLabels[subscription.status]}</p>
+                <p className="font-semibold text-sm">{statusLabels[effectiveStatus]}</p>
                 <p className="text-xs opacity-75">
-                  {subscription.status === "trial" && trialDaysLeft !== null
+                  {effectiveStatus === "trial" && trialDaysLeft !== null
                     ? `${trialDaysLeft} jour${trialDaysLeft > 1 ? "s" : ""} restant${trialDaysLeft > 1 ? "s" : ""} — Plan ${PLANS[subscription.plan_id]?.name || subscription.plan_id}`
-                    : subscription.current_period_end
+                    : effectiveStatus === "active" && subscription.current_period_end
                     ? `Renouvellement le ${formatShortDate(subscription.current_period_end)}`
+                    : effectiveStatus === "expired" && subscription.current_period_end
+                    ? `Expiré le ${formatShortDate(subscription.current_period_end)}`
                     : `Plan ${PLANS[subscription.plan_id]?.name || subscription.plan_id}`}
                 </p>
               </div>
             </div>
-            {subscription.status === "trial" && (
+            {effectiveStatus === "trial" && (
               <div className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white/60 border border-current">
                 Souscrivez pour continuer après l&apos;essai
               </div>

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Lock, CreditCard, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { getEffectiveSubscriptionStatus, isSubscriptionValid } from "@/lib/subscription";
 
 // These paths are always accessible regardless of subscription
 const EXEMPT_PATHS = ["/dashboard", "/dashboard/abonnement", "/dashboard/parametres"];
@@ -13,21 +14,14 @@ function isExempt(pathname) {
   return EXEMPT_PATHS.some((p) => pathname === p);
 }
 
-function isValid(sub) {
-  if (!sub) return false;
-  if (sub.status === "active") return true;
-  if (sub.status === "trial" && sub.trial_end && new Date(sub.trial_end) > new Date()) return true;
-  return false;
-}
-
 function LockScreen({ subscription }) {
-  const isSuspended = subscription?.status === "suspended";
+  const status = getEffectiveSubscriptionStatus(subscription);
+  const isSuspended = status === "suspended";
   const isTrialExpired =
-    subscription?.status === "trial" &&
+    status === "trial" &&
     (!subscription.trial_end || new Date(subscription.trial_end) <= new Date());
-  const isExpired =
-    subscription && ["expired", "cancelled"].includes(subscription.status);
-  const isPastDue = subscription?.status === "past_due";
+  const isExpired = ["expired", "cancelled"].includes(status);
+  const isPastDue = status === "past_due";
 
   let title = "Module verrouillé";
   let message = "Souscrivez à un plan pour accéder à tous les modules de Gestio.";
@@ -89,7 +83,7 @@ export function SubscriptionGate({ children }) {
   }, []);
 
   // Suspended accounts are blocked everywhere
-  if (subscription?.status === "suspended") return <LockScreen subscription={subscription} />;
+  if (getEffectiveSubscriptionStatus(subscription) === "suspended") return <LockScreen subscription={subscription} />;
 
   // Always pass through exempt paths
   if (isExempt(pathname)) return children;
@@ -97,7 +91,7 @@ export function SubscriptionGate({ children }) {
   // While auth or subscription is loading, show content (optimistic)
   if (authLoading || subscription === undefined) return children;
 
-  if (isValid(subscription)) return children;
+  if (isSubscriptionValid(subscription)) return children;
 
   return <LockScreen subscription={subscription} />;
 }
