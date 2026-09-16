@@ -40,21 +40,26 @@ export default function DashboardPage() {
   useEffect(() => { loadDashboard(); }, []);
 
   async function loadDashboard() {
-    const [{ data: invoices }, { data: payments }, { data: expenses }, { data: revenues }, { data: tasks }, { data: projects }] = await Promise.all([
-      supabase.from("invoices").select("*, clients(company_name, contact_name)").order("created_at", { ascending: false }),
-      supabase.from("payments").select("*"),
-      supabase.from("expenses").select("*"),
-      supabase.from("revenues").select("*"),
-      supabase.from("tasks").select("*, projects(name)").neq("status", "termine").order("due_date").limit(5),
-      supabase.from("projects").select("id").eq("status", "en_cours"),
-    ]);
-    setAllInvoices(invoices || []);
-    setAllPayments(payments || []);
-    setAllExpenses(expenses || []);
-    setAllRevenues(revenues || []);
-    setTodayTasks(tasks || []);
-    setActiveProjects((projects || []).length);
-    setLoading(false);
+    try {
+      const [{ data: invoices }, { data: payments }, { data: expenses }, { data: revenues }, { data: tasks }, { data: projects }] = await Promise.all([
+        supabase.from("invoices").select("*, clients(company_name, contact_name)").order("created_at", { ascending: false }),
+        supabase.from("payments").select("*"),
+        supabase.from("expenses").select("*"),
+        supabase.from("revenues").select("*"),
+        supabase.from("tasks").select("*, projects(name)").neq("status", "termine").order("due_date").limit(5),
+        supabase.from("projects").select("id").eq("status", "en_cours"),
+      ]);
+      setAllInvoices(invoices || []);
+      setAllPayments(payments || []);
+      setAllExpenses(expenses || []);
+      setAllRevenues(revenues || []);
+      setTodayTasks(tasks || []);
+      setActiveProjects((projects || []).length);
+    } catch (e) {
+      console.error("Dashboard load error:", e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function toggleTask(task) {
