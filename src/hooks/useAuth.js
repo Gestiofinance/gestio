@@ -11,17 +11,26 @@ export function useAuth() {
   const supabase = createClient();
 
   useEffect(() => {
+    async function fetchProfile(userId) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*, organizations(*)")
+          .eq("id", userId)
+          .single();
+        if (!error) return data;
+        console.error("Profile fetch error (attempt", attempt + 1, "):", error);
+        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+      }
+      return null;
+    }
+
     async function loadUser() {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
 
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*, organizations(*)")
-          .eq("id", user.id)
-          .single();
-
+        const profile = await fetchProfile(user.id);
         if (profile) {
           setProfile(profile);
           setOrganization(profile.organizations);
