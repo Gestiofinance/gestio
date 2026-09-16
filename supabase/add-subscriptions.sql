@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   current_period_start TIMESTAMPTZ,
   current_period_end TIMESTAMPTZ,
   trial_end TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '14 days'),
-  paytech_token VARCHAR,
-  paytech_ref VARCHAR,
+  payment_token VARCHAR,
+  payment_ref VARCHAR,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -32,8 +32,8 @@ CREATE TABLE IF NOT EXISTS subscription_payments (
   billing_cycle VARCHAR NOT NULL,
   amount INTEGER NOT NULL,
   status VARCHAR NOT NULL DEFAULT 'pending',  -- 'pending' | 'completed' | 'failed' | 'refunded'
-  paytech_token VARCHAR,
-  paytech_ref VARCHAR,
+  payment_token VARCHAR,
+  payment_ref VARCHAR,
   payment_method VARCHAR,
   paid_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -109,7 +109,8 @@ CREATE POLICY "admin_view_all_profiles" ON profiles FOR SELECT TO authenticated
 -- After running:
 -- 1. Run: UPDATE profiles SET is_super_admin = TRUE WHERE email = 'YOUR_ADMIN_EMAIL';
 -- 2. Add to .env.local: SUPABASE_SERVICE_ROLE_KEY=...
--- 3. Add to .env.local: PAYTECH_API_KEY=...
--- 4. Add to .env.local: PAYTECH_API_SECRET=...
--- 5. Add to .env.local: NEXT_PUBLIC_APP_URL=https://your-domain.com
+-- 3. Add to .env.local: BICTORYS_API_URL=https://api.bictorys.com
+-- 4. Add to .env.local: BICTORYS_API_KEY=...
+-- 5. Add to .env.local: BICTORYS_WEBHOOK_SECRET=...
+-- 6. Add to .env.local: NEXT_PUBLIC_APP_URL=https://your-domain.com
 -- ============================================================

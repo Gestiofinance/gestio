@@ -191,7 +191,7 @@ CREATE TABLE IF NOT EXISTS payments (
   invoice_id UUID REFERENCES invoices(id) ON DELETE CASCADE NOT NULL,
   amount NUMERIC(12,2) NOT NULL,
   payment_date DATE DEFAULT CURRENT_DATE,
-  payment_method TEXT DEFAULT 'virement' CHECK (payment_method IN ('virement', 'especes', 'wave', 'orange_money', 'free_money', 'carte_bancaire', 'cheque', 'paytech', 'autre')),
+  payment_method TEXT DEFAULT 'virement' CHECK (payment_method IN ('virement', 'especes', 'wave', 'orange_money', 'free_money', 'carte_bancaire', 'cheque', 'paytech', 'bictorys', 'autre')),
   reference TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()

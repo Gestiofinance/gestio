@@ -99,7 +99,7 @@ export function ReceiptPDF({ payment, organizationName }) {
         <Text style={s.tableTitle}>Détails de la transaction</Text>
         <View style={s.row}>
           <Text style={s.rowLabel}>Référence</Text>
-          <Text style={s.rowValue}>{payment.paytech_ref || receiptNumber}</Text>
+          <Text style={s.rowValue}>{payment.payment_ref || receiptNumber}</Text>
         </View>
         {payment.payment_method && (
           <View style={s.row}>

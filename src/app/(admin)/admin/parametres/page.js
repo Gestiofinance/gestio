@@ -277,7 +277,7 @@ export default function AdminParametresPage() {
           <div className="space-y-3">
             {[
               { key: "newUserAlert", label: "Nouveau compte créé", desc: "Alerter lors d'une inscription" },
-              { key: "paymentAlert", label: "Paiement reçu", desc: "Alerter à chaque paiement PayTech" },
+              { key: "paymentAlert", label: "Paiement reçu", desc: "Alerter à chaque paiement Bictorys" },
               { key: "expirationAlert", label: "Abonnement expiré", desc: "Alerter quand un abonnement expire" },
             ].map(({ key, label, desc }) => (
               <label key={key} className="flex items-center justify-between p-3 bg-slate-900 rounded-lg cursor-pointer">
@@ -301,9 +301,9 @@ export default function AdminParametresPage() {
           </div>
           <div className="space-y-3">
             <div className="p-4 bg-slate-900 rounded-lg border border-slate-700">
-              <p className="text-sm font-medium text-white mb-1">Clés d&apos;API PayTech</p>
+              <p className="text-sm font-medium text-white mb-1">Clés d&apos;API Bictorys</p>
               <p className="text-xs text-slate-400">Configurées via variables d&apos;environnement Netlify</p>
-              <p className="text-xs text-slate-500 mt-1">PAYTECH_API_KEY · PAYTECH_API_SECRET · SUPABASE_SERVICE_ROLE_KEY</p>
+              <p className="text-xs text-slate-500 mt-1">BICTORYS_API_URL · BICTORYS_API_KEY · BICTORYS_WEBHOOK_SECRET · SUPABASE_SERVICE_ROLE_KEY</p>
             </div>
             <div className="p-4 bg-slate-900 rounded-lg border border-slate-700">
               <p className="text-sm font-medium text-white mb-1">Authentification Supabase</p>

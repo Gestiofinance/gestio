@@ -109,7 +109,7 @@ function AbonnementContent() {
       // Business is always quarterly, Standard/Pro use selected cycle
       const billingCycle = planId === "business" ? "quarterly" : cycle;
 
-      const res = await fetch("/api/paytech/initiate", {
+      const res = await fetch("/api/bictorys/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -321,7 +321,7 @@ function AbonnementContent() {
         <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
           <Shield className="w-4 h-4 text-muted shrink-0" />
           <p className="text-xs text-muted">
-            Paiements sécurisés via <strong>PayTech</strong> — Wave, Orange Money, Free Money, carte bancaire acceptés.
+            Paiements sécurisés via <strong>Bictorys</strong> — Wave, Orange Money, MTN Money, carte bancaire acceptés.
             Annulez à tout moment.
           </p>
         </div>

@@ -43,7 +43,7 @@ const paymentMethods = [
   { value: "virement", label: "Virement" }, { value: "especes", label: "Espèces" },
   { value: "wave", label: "Wave" }, { value: "orange_money", label: "Orange Money" },
   { value: "free_money", label: "Free Money" }, { value: "carte_bancaire", label: "Carte bancaire" },
-  { value: "cheque", label: "Chèque" }, { value: "paytech", label: "Paytech" },
+  { value: "cheque", label: "Chèque" }, { value: "bictorys", label: "Bictorys" },
 ];
 
 const emptyLine = { description: "", quantity: 1, unit_price: 0, tax_rate: 18 };

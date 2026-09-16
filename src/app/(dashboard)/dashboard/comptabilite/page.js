@@ -393,7 +393,7 @@ export default function ComptabilitePage() {
                 { value: "virement", label: "Virement" }, { value: "especes", label: "Espèces" },
                 { value: "wave", label: "Wave" }, { value: "orange_money", label: "Orange Money" },
                 { value: "free_money", label: "Free Money" }, { value: "carte_bancaire", label: "Carte bancaire" },
-                { value: "cheque", label: "Chèque" }, { value: "paytech", label: "Paytech" },
+                { value: "cheque", label: "Chèque" }, { value: "bictorys", label: "Bictorys" },
               ]} />
             <Input id="rec_client" label="Client (optionnel)" placeholder="Nom du client" value={recetteForm.client_name} onChange={(e) => setRecetteForm({ ...recetteForm, client_name: e.target.value })} />
           </div>
