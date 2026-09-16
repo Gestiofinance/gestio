@@ -20,10 +20,12 @@ import {
   CreditCard,
   ShieldCheck,
   PenTool,
+  LifeBuoy,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { SupportModal } from "@/components/support/support-modal";
 
 const navigation = [
   { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
@@ -48,12 +50,24 @@ export function Sidebar() {
 
   const isOwner = profile?.role === "proprietaire";
   const isSuperAdmin = user?.app_metadata?.is_super_admin === true || profile?.is_super_admin === true;
+  const isOrgAdmin = profile?.role === "proprietaire" || profile?.role === "administrateur";
   const allowedModules = profile?.allowed_modules || [];
   const visibleNavigation = navigation.filter((item) => {
     if (!item.moduleKey) return true;
     if (loading || isOwner || isSuperAdmin) return true;
     return allowedModules.includes(item.moduleKey);
   });
+
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    if (!isOrgAdmin) return;
+    fetch("/api/support/unread")
+      .then((r) => r.json())
+      .then((d) => setHasUnread(!!d.hasUnread))
+      .catch(() => {});
+  }, [isOrgAdmin]);
 
   return (
     <>
@@ -147,6 +161,22 @@ export function Sidebar() {
               <p className="text-xs text-slate-400 truncate">{profile.email}</p>
             </div>
           )}
+          {isOrgAdmin && (
+            <button
+              onClick={() => { setSupportOpen(true); setMobileOpen(false); }}
+              className="relative flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title={collapsed ? "Support" : undefined}
+            >
+              <LifeBuoy className="w-5 h-5 shrink-0" />
+              {!collapsed && <span>Support</span>}
+              {hasUnread && (
+                <span className={cn(
+                  "absolute bg-danger-500 rounded-full",
+                  collapsed ? "top-1.5 right-1.5 w-2.5 h-2.5" : "right-3 top-1/2 -translate-y-1/2 w-2 h-2"
+                )} />
+              )}
+            </button>
+          )}
           <button
             onClick={signOut}
             className={cn(
@@ -159,6 +189,14 @@ export function Sidebar() {
           </button>
         </div>
       </aside>
+
+      {isOrgAdmin && (
+        <SupportModal
+          open={supportOpen}
+          onClose={() => setSupportOpen(false)}
+          onUnreadChange={() => setHasUnread(false)}
+        />
+      )}
     </>
   );
 }
