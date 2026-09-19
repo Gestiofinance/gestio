@@ -50,36 +50,41 @@ export async function POST(request) {
     }
 
     const payload = JSON.parse(rawBody);
-    const { status, paymentReference, amount, pspName } = payload;
+    const { status, paymentReference, amount, currency, pspName } = payload;
 
     if (!["succeeded", "authorized"].includes(status)) {
       return NextResponse.json({ received: true }, { status: 200 });
     }
 
-    // paymentReference format: GESTIO_{organizationId}_{planId}_{billingCycle}_{timestamp}
-    const parts = (paymentReference || "").split("_");
-    if (parts.length < 4 || parts[0] !== "GESTIO") {
-      console.error("Bictorys webhook: unrecognized paymentReference", paymentReference);
-      return NextResponse.json({ received: true }, { status: 200 });
-    }
-    const [, organizationId, planId, billingCycle] = parts;
-
     const supabase = createAdminClient();
 
-    // Idempotency: a webhook already processed for this reference is a no-op
-    const { data: existingPayment } = await supabase
+    // The pending payment created by /api/bictorys/initiate holds org/plan/cycle.
+    const { data: payment } = await supabase
       .from("subscription_payments")
-      .select("id, status")
-      .eq("payment_ref", paymentReference)
+      .select("id, status, organization_id, plan_id, billing_cycle, amount")
+      .eq("payment_ref", paymentReference || "")
       .maybeSingle();
 
-    if (existingPayment?.status === "completed") {
+    if (!payment) {
+      console.error("Bictorys webhook: unknown paymentReference", paymentReference);
       return NextResponse.json({ received: true }, { status: 200 });
     }
 
+    // Idempotency: a webhook already processed for this reference is a no-op
+    if (payment.status === "completed") {
+      return NextResponse.json({ received: true }, { status: 200 });
+    }
+
+    // Anti-fraud: currency must match and the customer must have paid at least the plan price
+    if ((currency && currency !== "XOF") || Number(amount) < Number(payment.amount)) {
+      console.error("Bictorys webhook: amount/currency mismatch", { paymentReference, amount, currency, expected: payment.amount });
+      return NextResponse.json({ received: true }, { status: 200 });
+    }
+
+    const { organization_id: organizationId, plan_id: planId, billing_cycle: billingCycle } = payment;
     const now = new Date().toISOString();
     const periodEnd = getPeriodEnd(billingCycle);
-    const finalAmount = amount || 0;
+    const finalAmount = payment.amount;
 
     const { data: existingSub } = await supabase
       .from("subscriptions")
@@ -101,23 +106,15 @@ export async function POST(request) {
       ? await supabase.from("subscriptions").update({ ...subPayload, updated_at: now }).eq("id", existingSub.id)
       : await supabase.from("subscriptions").insert({ organization_id: organizationId, ...subPayload });
 
-    const { error: payError } = existingPayment
-      ? await supabase.from("subscription_payments").update({
-          status: "completed",
-          payment_method: pspName || null,
-          paid_at: now,
-        }).eq("id", existingPayment.id)
-      : await supabase.from("subscription_payments").insert({
-          organization_id: organizationId,
-          plan_id: planId,
-          billing_cycle: billingCycle,
-          amount: finalAmount,
-          status: "completed",
-          payment_ref: paymentReference,
-          payment_method: pspName || null,
-          paid_at: now,
-          subscription_id: existingSub?.id || null,
-        });
+    const { error: payError } = await supabase
+      .from("subscription_payments")
+      .update({
+        status: "completed",
+        payment_method: pspName || null,
+        paid_at: now,
+        ...(existingSub?.id ? { subscription_id: existingSub.id } : {}),
+      })
+      .eq("id", payment.id);
 
     // A real payment must not be lost: on DB failure answer 500 so Bictorys
     // retries (safe — the handler is idempotent on payment_ref).

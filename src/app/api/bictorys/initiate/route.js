@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -103,7 +104,9 @@ export async function POST(request) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const paymentReference = `GESTIO_${organizationId}_${planId}_${billingCycle}_${Date.now()}`;
+    // Short alphanumeric reference (Bictorys rejects long/complex ones with E400-46).
+    // org/plan/cycle are looked up from the pending payment row by the webhook.
+    const paymentReference = `GST${Date.now().toString(36).toUpperCase()}${randomBytes(3).toString("hex").toUpperCase()}`;
 
     const phone = normalizePhone(profile?.phone);
 
