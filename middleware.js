@@ -2,8 +2,8 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { NextResponse } from "next/server";
 
 export async function middleware(request) {
-  // PayTech IPN webhook must be publicly accessible
-  if (request.nextUrl.pathname === "/api/paytech/webhook") {
+  // Bictorys webhook must be publicly accessible (authenticated by its own signature)
+  if (request.nextUrl.pathname === "/api/bictorys/webhook") {
     return NextResponse.next();
   }
 
