@@ -87,48 +87,43 @@ export async function POST(request) {
       .eq("organization_id", organizationId)
       .maybeSingle();
 
-    if (existingSub) {
-      await supabase.from("subscriptions").update({
-        plan_id: planId,
-        billing_cycle: billingCycle,
-        status: "active",
-        amount: finalAmount,
-        payment_ref: paymentReference,
-        current_period_start: now,
-        current_period_end: periodEnd,
-        updated_at: now,
-      }).eq("id", existingSub.id);
-    } else {
-      await supabase.from("subscriptions").insert({
-        organization_id: organizationId,
-        plan_id: planId,
-        billing_cycle: billingCycle,
-        status: "active",
-        amount: finalAmount,
-        payment_ref: paymentReference,
-        current_period_start: now,
-        current_period_end: periodEnd,
-      });
-    }
+    const subPayload = {
+      plan_id: planId,
+      billing_cycle: billingCycle,
+      status: "active",
+      amount: finalAmount,
+      payment_ref: paymentReference,
+      current_period_start: now,
+      current_period_end: periodEnd,
+    };
 
-    if (existingPayment) {
-      await supabase.from("subscription_payments").update({
-        status: "completed",
-        payment_method: pspName || null,
-        paid_at: now,
-      }).eq("id", existingPayment.id);
-    } else {
-      await supabase.from("subscription_payments").insert({
-        organization_id: organizationId,
-        plan_id: planId,
-        billing_cycle: billingCycle,
-        amount: finalAmount,
-        status: "completed",
-        payment_ref: paymentReference,
-        payment_method: pspName || null,
-        paid_at: now,
-        subscription_id: existingSub?.id || null,
-      });
+    const { error: subError } = existingSub
+      ? await supabase.from("subscriptions").update({ ...subPayload, updated_at: now }).eq("id", existingSub.id)
+      : await supabase.from("subscriptions").insert({ organization_id: organizationId, ...subPayload });
+
+    const { error: payError } = existingPayment
+      ? await supabase.from("subscription_payments").update({
+          status: "completed",
+          payment_method: pspName || null,
+          paid_at: now,
+        }).eq("id", existingPayment.id)
+      : await supabase.from("subscription_payments").insert({
+          organization_id: organizationId,
+          plan_id: planId,
+          billing_cycle: billingCycle,
+          amount: finalAmount,
+          status: "completed",
+          payment_ref: paymentReference,
+          payment_method: pspName || null,
+          paid_at: now,
+          subscription_id: existingSub?.id || null,
+        });
+
+    // A real payment must not be lost: on DB failure answer 500 so Bictorys
+    // retries (safe — the handler is idempotent on payment_ref).
+    if (subError || payError) {
+      console.error("Bictorys webhook: DB write failed", subError || payError);
+      return NextResponse.json({ received: false }, { status: 500 });
     }
 
     return NextResponse.json({ received: true }, { status: 200 });

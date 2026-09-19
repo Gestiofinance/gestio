@@ -4,9 +4,30 @@ import { createClient } from "@/lib/supabase/server";
 
 const BICTORYS_API_URL = process.env.BICTORYS_API_URL || "https://api.bictorys.com";
 
-// Redirect-page mode (no payment_type query param): Bictorys hosts a checkout
-// page where the customer picks Wave/Orange Money/Card themselves — same UX
-// as the previous PayTech integration.
+// Bictorys requires "+<country code><number>" with no spaces (e.g. +221771234567).
+function normalizePhone(raw) {
+  if (!raw) return null;
+  const cleaned = String(raw).replace(/[^\d+]/g, "");
+  if (/^\+\d{8,15}$/.test(cleaned)) return cleaned;
+  const digits = cleaned.replace(/\D/g, "");
+  if (/^\d{9}$/.test(digits)) return `+221${digits}`;
+  if (/^221\d{9}$/.test(digits)) return `+${digits}`;
+  return null;
+}
+
+function upstreamMessage(text) {
+  try {
+    const json = JSON.parse(text);
+    const msg = json.details || json.detail || json.title;
+    return typeof msg === "string" ? msg : null;
+  } catch {
+    return null;
+  }
+}
+
+// Checkout mode (no payment_type query param): Bictorys answers 202 with
+// { type: "CheckoutLinkObject", link, chargeId, opToken } and hosts the page
+// where the customer picks Wave/Orange Money/Card themselves.
 async function createBictorysCharge(body) {
   const MAX_RETRIES = 3;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -84,31 +105,34 @@ export async function POST(request) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const paymentReference = `GESTIO_${organizationId}_${planId}_${billingCycle}_${Date.now()}`;
 
+    const phone = normalizePhone(profile?.phone);
+
     const chargeBody = {
-      amount,
+      amount: Math.round(Number(amount)),
       currency: "XOF",
       country: "SN",
       paymentReference,
       successRedirectUrl: `${appUrl}/dashboard/abonnement?success=1`,
-      ErrorRedirectUrl: `${appUrl}/dashboard/abonnement?cancelled=1`,
+      errorRedirectUrl: `${appUrl}/dashboard/abonnement?cancelled=1`,
       customerObject: {
         name: profile?.full_name || organizationName,
-        ...(profile?.phone ? { phone: profile.phone } : {}),
+        ...(phone ? { phone } : {}),
         ...(profile?.email ? { email: profile.email } : {}),
         country: "SN",
       },
     };
 
     const result = await createBictorysCharge(chargeBody);
-    if (!result.ok || !result.data?.redirectUrl) {
-      console.error("Bictorys charge error:", result.status, result.text);
+    if (!result.ok || !result.data?.link) {
+      console.error("Bictorys charge error:", result.status, result.text ?? JSON.stringify(result.data));
+      const reason = upstreamMessage(result.text) || "impossible d'initier le paiement.";
       return NextResponse.json(
-        { error: "Erreur Bictorys: impossible d'initier le paiement." },
+        { error: `Erreur Bictorys${result.status ? ` (${result.status})` : ""}: ${reason}` },
         { status: 502 }
       );
     }
 
-    const { transactionId, redirectUrl } = result.data;
+    const { chargeId, link: redirectUrl } = result.data;
 
     const { data: existingSub } = await admin
       .from("subscriptions")
@@ -122,26 +146,34 @@ export async function POST(request) {
       billing_cycle: billingCycle,
       status: existingSub?.status === "active" ? "active" : "trial",
       amount,
-      payment_token: transactionId,
+      payment_token: chargeId,
       payment_ref: paymentReference,
     };
 
-    if (existingSub) {
-      await admin.from("subscriptions").update(subPayload).eq("id", existingSub.id);
-    } else {
-      await admin.from("subscriptions").insert(subPayload);
-    }
+    const { error: subError } = existingSub
+      ? await admin.from("subscriptions").update(subPayload).eq("id", existingSub.id)
+      : await admin.from("subscriptions").insert(subPayload);
 
-    await admin.from("subscription_payments").insert({
+    const { error: payError } = await admin.from("subscription_payments").insert({
       organization_id: organizationId,
       plan_id: planId,
       billing_cycle: billingCycle,
       amount,
       status: "pending",
-      payment_token: transactionId,
+      payment_token: chargeId,
       payment_ref: paymentReference,
       subscription_id: existingSub?.id || null,
     });
+
+    // Never send the customer to pay if we couldn't record the pending payment:
+    // the webhook could not activate the subscription afterwards.
+    if (subError || payError) {
+      console.error("Bictorys initiate: DB write failed", subError || payError);
+      return NextResponse.json(
+        { error: "Impossible d'enregistrer le paiement. Veuillez contacter le support." },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ redirect_url: redirectUrl });
   } catch (error) {
