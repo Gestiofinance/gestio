@@ -29,12 +29,20 @@ export async function updateSession(request) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthPage =
-    request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/inscription") ||
-    request.nextUrl.pathname.startsWith("/mot-de-passe-oublie");
+  const pathname = request.nextUrl.pathname;
 
-  if (!user && !isAuthPage && request.nextUrl.pathname !== "/") {
+  const isAuthPage =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/inscription") ||
+    pathname.startsWith("/mot-de-passe-oublie") ||
+    pathname.startsWith("/verifier-email") ||
+    pathname.startsWith("/reinitialiser-mot-de-passe");
+
+  // Must run with no session yet — it's the one creating it (OAuth code
+  // exchange, email confirmation, password recovery link).
+  const isAuthCallback = pathname.startsWith("/auth/callback");
+
+  if (!user && !isAuthPage && !isAuthCallback && pathname !== "/") {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

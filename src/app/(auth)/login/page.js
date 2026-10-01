@@ -55,6 +55,16 @@ export default function LoginPage() {
       return;
     }
 
+    try {
+      const res = await fetch("/api/settings/org");
+      const { org } = await res.json();
+      if (org && org.onboarding_completed === false) {
+        router.push("/onboarding");
+        router.refresh();
+        return;
+      }
+    } catch {}
+
     router.push("/dashboard");
     router.refresh();
   }
