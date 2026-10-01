@@ -2,8 +2,11 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { NextResponse } from "next/server";
 
 export async function middleware(request) {
-  // Bictorys webhook must be publicly accessible (authenticated by its own signature)
-  if (request.nextUrl.pathname === "/api/bictorys/webhook") {
+  // Every API route checks auth itself and returns a JSON error — an HTML
+  // redirect to /login here would break fetch().json() on the caller side,
+  // including public routes like plan-prices and settings read by the
+  // logged-out landing page.
+  if (request.nextUrl.pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 

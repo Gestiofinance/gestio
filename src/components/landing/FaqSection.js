@@ -2,16 +2,19 @@
 
 import { useState } from "react";
 
-const faqs = [
+const staticFaqs = [
   { q: "Ai-je besoin de compétences techniques pour utiliser Gestio ?", a: "Non, Gestio est pensé pour être utilisé sans formation : créez votre première facture ou devis en quelques minutes." },
   { q: "Gestio fonctionne-t-il en FCFA ?", a: "Oui, toute la facturation, les dépenses et la comptabilité sont gérées nativement en Franc CFA." },
   { q: "Puis-je gérer plusieurs clients et projets à la fois ?", a: "Gestio centralise vos clients, projets, tâches et échéances dans un planning unique, sans limite de nombre de clients selon votre formule." },
   { q: "Existe-t-il une version mobile ?", a: "Oui, Gestio s'utilise aussi bien sur mobile que sur ordinateur, avec la même interface simple et rapide." },
-  { q: "Puis-je essayer Gestio gratuitement ?", a: "Oui, un essai gratuit de 14 jours est disponible sur toutes les formules, sans carte bancaire requise." },
 ];
 
-export default function FaqSection() {
+export default function FaqSection({ trialDays = 14 }) {
   const [open, setOpen] = useState(0);
+  const faqs = [
+    ...staticFaqs,
+    { q: "Puis-je essayer Gestio gratuitement ?", a: `Oui, un essai gratuit de ${trialDays} jours est disponible sur toutes les formules, sans carte bancaire requise.` },
+  ];
 
   return (
     <div className="flex flex-col gap-3">

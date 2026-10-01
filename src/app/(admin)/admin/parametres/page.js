@@ -29,6 +29,7 @@ export default function AdminParametresPage() {
   const [loadingPrices, setLoadingPrices] = useState(true);
   const [savingPrices, setSavingPrices] = useState(false);
   const [pricesSaved, setPricesSaved] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
   // Computed annual prices
@@ -52,6 +53,13 @@ export default function AdminParametresPage() {
         }
       })
       .finally(() => setLoadingPrices(false));
+
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && !data.error) handleChange("trialDays", data.trialDays);
+      })
+      .catch(() => {});
   }, []);
 
   function handleChange(key, value) {
@@ -80,9 +88,19 @@ export default function AdminParametresPage() {
     }
   }
 
-  function handleSaveSettings() {
-    setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 2500);
+  async function handleSaveSettings() {
+    setSavingSettings(true);
+    try {
+      await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trialDays: settings.trialDays }),
+      });
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 2500);
+    } finally {
+      setSavingSettings(false);
+    }
   }
 
   function fmtFcfa(n) {
@@ -320,9 +338,14 @@ export default function AdminParametresPage() {
         <div className="flex justify-end">
           <button
             onClick={handleSaveSettings}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all ${settingsSaved ? "bg-green-600 text-white" : "bg-violet-600 hover:bg-violet-700 text-white"}`}
+            disabled={savingSettings}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-60 ${settingsSaved ? "bg-green-600 text-white" : "bg-violet-600 hover:bg-violet-700 text-white"}`}
           >
-            {settingsSaved ? <><Check className="w-4 h-4" /> Enregistré</> : <><Save className="w-4 h-4" /> Enregistrer les paramètres</>}
+            {savingSettings
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Enregistrement...</>
+              : settingsSaved
+              ? <><Check className="w-4 h-4" /> Enregistré</>
+              : <><Save className="w-4 h-4" /> Enregistrer les paramètres</>}
           </button>
         </div>
       </div>

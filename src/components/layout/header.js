@@ -23,8 +23,12 @@ function useSubscriptionBanner() {
           const daysLeft = end ? Math.ceil((end - now) / 86400000) : null;
 
           if (daysLeft !== null && daysLeft >= 0) {
+            // Total trial length for this org, from its own created_at — not a
+            // hardcoded constant, since the configured duration can change over time.
+            const start = subscription.created_at ? new Date(subscription.created_at) : null;
+            const totalDays = start && end ? Math.max(1, Math.ceil((end - start) / 86400000)) : 14;
             // Always show trial banner; urgent mode when ≤ 3 days
-            setBanner({ type: daysLeft <= 3 ? "trial_urgent" : "trial_info", daysLeft });
+            setBanner({ type: daysLeft <= 3 ? "trial_urgent" : "trial_info", daysLeft, totalDays });
           }
         }
 
@@ -43,7 +47,7 @@ function useSubscriptionBanner() {
 }
 
 function SubscriptionBanner({ banner, onClose }) {
-  const { type, daysLeft } = banner;
+  const { type, daysLeft, totalDays } = banner;
 
   const isToday = daysLeft === 0;
   const isTomorrow = daysLeft === 1;
@@ -73,9 +77,9 @@ function SubscriptionBanner({ banner, onClose }) {
     },
   }[type];
 
-  // Progress bar for trial_info: full 14 days range
+  // Progress bar for trial_info: full trial range for this org
   // For warnings: 5-day countdown
-  const maxDays = type === "trial_info" ? 14 : 5;
+  const maxDays = type === "trial_info" ? (totalDays || 14) : 5;
   const pct = Math.max(0, Math.min(100, (daysLeft / maxDays) * 100));
 
   return (

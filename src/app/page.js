@@ -4,6 +4,7 @@ import FeatureTabs from "@/components/landing/FeatureTabs";
 import FaqSection from "@/components/landing/FaqSection";
 import TestimonialsMarquee from "@/components/landing/TestimonialsMarquee";
 import PricingSection from "@/components/landing/PricingSection";
+import { getTrialDays } from "@/lib/settings";
 
 const GRADIENT = "linear-gradient(135deg,#4f46e5,#9333ea)";
 const GRADIENT_120 = "linear-gradient(120deg,#4f46e5,#9333ea)";
@@ -118,11 +119,10 @@ const heroCards = [
   { Icon: ComptaIcon, hue: hues[3], title: "Comptabilité", desc: "Recettes, dépenses et trésorerie en un coup d'œil." },
 ];
 
-const stats = [
+const baseStats = [
   { value: "500+", label: "entreprises actives" },
   { value: "12M+", label: "FCFA facturés" },
   { value: "4,8/5", label: "satisfaction client" },
-  { value: "14 j", label: "d'essai gratuit" },
 ];
 
 const bullets = [
@@ -144,7 +144,12 @@ const footerLinks = {
   Support: ["Centre d'aide", "FAQ", "Confidentialité", "Conditions"],
 };
 
-export default function HomePage() {
+export const revalidate = 3600;
+
+export default async function HomePage() {
+  const trialDays = await getTrialDays();
+  const stats = [...baseStats, { value: `${trialDays} j`, label: "d'essai gratuit" }];
+
   return (
     <div style={{ background: "#ffffff", color: "#1e1b3a", overflow: "hidden" }}>
 
@@ -320,7 +325,7 @@ export default function HomePage() {
               Vos questions, nos réponses
             </h2>
           </div>
-          <FaqSection />
+          <FaqSection trialDays={trialDays} />
         </div>
       </div>
 
@@ -338,7 +343,7 @@ export default function HomePage() {
         <div className="relative max-w-[960px] mx-auto">
           <div className="flex items-center justify-center flex-wrap gap-3.5">
             <Link href="/inscription" className="whitespace-nowrap text-white font-bold" style={{ background: "#181432", fontSize: "15px", padding: "14px 26px", borderRadius: "12px" }}>
-              Essai gratuit — 14 jours
+              Essai gratuit — {trialDays} jours
             </Link>
           </div>
         </div>
