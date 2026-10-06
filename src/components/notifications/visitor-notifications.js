@@ -54,7 +54,7 @@ export function VisitorNotifications() {
               onClick={() => setToasts((ts) => ts.filter((x) => x.id !== t.id))}
               className="text-xs text-primary-500 hover:text-primary-600 font-medium mt-1.5 inline-block"
             >
-              Voir à l&apos;accueil →
+              Voir dans Rendez-vous →
             </Link>
           </div>
           <button

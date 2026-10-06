@@ -30,7 +30,7 @@ import { SupportModal } from "@/components/support/support-modal";
 
 const navigation = [
   { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Accueil", href: "/dashboard/accueil", icon: ConciergeBell, moduleKey: "accueil" },
+  { name: "Rendez-vous", href: "/dashboard/accueil", icon: ConciergeBell, moduleKey: "accueil" },
   { name: "Clients", href: "/dashboard/clients", icon: Users, moduleKey: "clients" },
   { name: "Projets", href: "/dashboard/projets", icon: FolderKanban, moduleKey: "projets" },
   { name: "Tâches", href: "/dashboard/taches", icon: CheckSquare, moduleKey: "taches" },

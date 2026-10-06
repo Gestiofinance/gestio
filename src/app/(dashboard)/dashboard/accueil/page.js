@@ -137,7 +137,7 @@ export default function AccueilPage() {
 
   return (
     <div>
-      <Header title="Accueil" />
+      <Header title="Rendez-vous" />
       <div className="p-4 sm:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white sm:flex-1">
