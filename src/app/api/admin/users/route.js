@@ -71,6 +71,50 @@ export async function PATCH(request) {
       return NextResponse.json({ success: true });
     }
 
+    if (action === "grant_access") {
+      const { planId, lifetime, durationValue, durationUnit, note } = body;
+      if (!planId) return NextResponse.json({ error: "Plan requis" }, { status: 400 });
+
+      const now = new Date();
+      const periodEnd = new Date(now);
+      if (lifetime) {
+        periodEnd.setFullYear(periodEnd.getFullYear() + 100);
+      } else {
+        const n = Math.max(1, parseInt(durationValue, 10) || 1);
+        if (durationUnit === "days") periodEnd.setDate(periodEnd.getDate() + n);
+        else if (durationUnit === "years") periodEnd.setFullYear(periodEnd.getFullYear() + n);
+        else periodEnd.setMonth(periodEnd.getMonth() + n);
+      }
+
+      const { data: existingSub } = await admin
+        .from("subscriptions")
+        .select("id")
+        .eq("organization_id", orgId)
+        .maybeSingle();
+
+      const payload = {
+        organization_id: orgId,
+        plan_id: planId,
+        billing_cycle: "offert",
+        status: "active",
+        amount: 0,
+        current_period_start: now.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+        is_complimentary: true,
+        granted_by: user.id,
+        granted_note: note || null,
+        updated_at: now.toISOString(),
+      };
+
+      if (existingSub) {
+        await admin.from("subscriptions").update(payload).eq("id", existingSub.id);
+      } else {
+        await admin.from("subscriptions").insert(payload);
+      }
+
+      return NextResponse.json({ success: true, current_period_end: periodEnd.toISOString() });
+    }
+
     return NextResponse.json({ error: "Action inconnue" }, { status: 400 });
   } catch (e) {
     console.error("PATCH /api/admin/users error:", e);

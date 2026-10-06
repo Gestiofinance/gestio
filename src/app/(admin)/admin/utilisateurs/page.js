@@ -5,7 +5,7 @@ import { formatShortDate } from "@/lib/utils";
 import { getPlanLabel, getCycleLabel } from "@/lib/plans";
 import {
   Building2, Search, Users, CheckCircle, Clock, XCircle, Eye, EyeOff,
-  Pencil, Key, PauseCircle, PlayCircle, Trash2, X, AlertTriangle,
+  Pencil, Key, PauseCircle, PlayCircle, Trash2, X, AlertTriangle, Gift,
 } from "lucide-react";
 
 const statusColors = {
@@ -52,6 +52,8 @@ export default function AdminUsersPage() {
   const [pwModal, setPwModal] = useState(false);
   const [pwForm, setPwForm] = useState({ password: "", confirm: "" });
   const [showPw, setShowPw] = useState(false);
+  const [grantModal, setGrantModal] = useState(false);
+  const [grantForm, setGrantForm] = useState({ planId: "pro", lifetime: true, durationValue: 1, durationUnit: "months", note: "" });
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -95,6 +97,12 @@ export default function AdminUsersPage() {
     setActionError("");
   }
 
+  function openGrant() {
+    setGrantForm({ planId: selected?.sub?.plan_id || "pro", lifetime: true, durationValue: 1, durationUnit: "months", note: "" });
+    setGrantModal(true);
+    setActionError("");
+  }
+
   async function apiAction(body, onSuccess) {
     setSaving(true);
     setActionError("");
@@ -134,6 +142,36 @@ export default function AdminUsersPage() {
     await apiAction(
       { action: isSuspended ? "unsuspend" : "suspend", orgId: selected.id },
       () => setSelected((s) => s ? { ...s, sub: { ...s.sub, status: isSuspended ? "active" : "suspended" } } : s)
+    );
+  }
+
+  async function handleGrant() {
+    const periodEnd = new Date();
+    if (grantForm.lifetime) {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 100);
+    } else {
+      const n = Math.max(1, parseInt(grantForm.durationValue, 10) || 1);
+      if (grantForm.durationUnit === "days") periodEnd.setDate(periodEnd.getDate() + n);
+      else if (grantForm.durationUnit === "years") periodEnd.setFullYear(periodEnd.getFullYear() + n);
+      else periodEnd.setMonth(periodEnd.getMonth() + n);
+    }
+
+    await apiAction(
+      { action: "grant_access", orgId: selected.id, ...grantForm },
+      () => {
+        setGrantModal(false);
+        setSelected((s) => s ? {
+          ...s,
+          sub: {
+            ...s.sub,
+            plan_id: grantForm.planId,
+            status: "active",
+            is_complimentary: true,
+            granted_note: grantForm.note || null,
+            current_period_end: periodEnd.toISOString(),
+          },
+        } : s);
+      }
     );
   }
 
@@ -273,8 +311,11 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-6 py-3">
                     {org.sub ? (
-                      <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${statusColors[org.sub.status] || "text-slate-400"}`}>
-                        {statusLabels[org.sub.status] || org.sub.status}
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${statusColors[org.sub.status] || "text-slate-400"}`}>
+                          {statusLabels[org.sub.status] || org.sub.status}
+                        </span>
+                        {org.sub.is_complimentary && <Gift className="w-3.5 h-3.5 text-success-400" title="Accès offert" />}
                       </span>
                     ) : (
                       <span className="text-xs text-slate-500">Pas d&apos;abo.</span>
@@ -302,17 +343,17 @@ export default function AdminUsersPage() {
       {/* Detail + action panel */}
       {selected && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div className="fixed inset-0 bg-black/60" onClick={() => { setSelected(null); setEditModal(false); setPwModal(false); setConfirmDelete(false); }} />
+          <div className="fixed inset-0 bg-black/60" onClick={() => { setSelected(null); setEditModal(false); setPwModal(false); setGrantModal(false); setConfirmDelete(false); }} />
           <div className="relative bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md mx-4 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-white">{selected.name}</h3>
-              <button onClick={() => { setSelected(null); setEditModal(false); setPwModal(false); setConfirmDelete(false); }} className="text-slate-400 hover:text-white">
+              <button onClick={() => { setSelected(null); setEditModal(false); setPwModal(false); setGrantModal(false); setConfirmDelete(false); }} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Info grid */}
-            {!editModal && !pwModal && !confirmDelete && (
+            {!editModal && !pwModal && !grantModal && !confirmDelete && (
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-slate-700 rounded-lg">
@@ -337,6 +378,19 @@ export default function AdminUsersPage() {
                           {statusLabels[selected.sub.status] || selected.sub.status}
                         </span>
                       </div>
+                      {selected.sub.is_complimentary && (
+                        <div className="p-3 bg-success-400/10 border border-success-400/20 rounded-lg col-span-2">
+                          <p className="text-xs text-success-400 font-medium flex items-center gap-1.5">
+                            <Gift className="w-3.5 h-3.5" /> Accès offert
+                            {selected.sub.current_period_end && new Date(selected.sub.current_period_end).getFullYear() > new Date().getFullYear() + 50
+                              ? " — à vie"
+                              : selected.sub.current_period_end
+                              ? ` — jusqu'au ${formatShortDate(selected.sub.current_period_end)}`
+                              : ""}
+                          </p>
+                          {selected.sub.granted_note && <p className="text-xs text-slate-400 mt-1">{selected.sub.granted_note}</p>}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -346,6 +400,7 @@ export default function AdminUsersPage() {
                   <p className="text-xs text-slate-500 px-3 mb-2">Actions</p>
                   <ActionButton icon={Pencil} label="Modifier les informations" onClick={openEdit} />
                   <ActionButton icon={Key} label="Changer le mot de passe" onClick={openPw} />
+                  <ActionButton icon={Gift} label="Offrir un accès gratuit" onClick={openGrant} variant="success" />
                   <ActionButton
                     icon={isSuspended ? PlayCircle : PauseCircle}
                     label={isSuspended ? "Réactiver le compte" : "Suspendre le compte"}
@@ -429,6 +484,76 @@ export default function AdminUsersPage() {
                   <button onClick={() => { setPwModal(false); setActionError(""); }} className="flex-1 px-3 py-2 rounded-lg bg-slate-700 text-sm text-slate-300 hover:bg-slate-600">Annuler</button>
                   <button onClick={handleSavePw} disabled={saving || !pwForm.password} className="flex-1 px-3 py-2 rounded-lg bg-primary-500 text-sm text-white font-medium hover:bg-primary-600 disabled:opacity-50">
                     {saving ? "Enregistrement..." : "Confirmer"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Grant free access form */}
+            {grantModal && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-white">Offrir un accès gratuit</h4>
+                <p className="text-xs text-slate-400">Active l&apos;abonnement sans passer par un paiement réel.</p>
+
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Plan</label>
+                  <select
+                    value={grantForm.planId}
+                    onChange={(e) => setGrantForm({ ...grantForm, planId: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none focus:border-primary-500"
+                  >
+                    <option value="standard">Standard</option>
+                    <option value="pro">Pro</option>
+                    <option value="business">Business</option>
+                  </select>
+                </div>
+
+                <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={grantForm.lifetime}
+                    onChange={(e) => setGrantForm({ ...grantForm, lifetime: e.target.checked })}
+                    className="accent-primary-500"
+                  />
+                  Accès à vie
+                </label>
+
+                {!grantForm.lifetime && (
+                  <div className="flex gap-2">
+                    <input
+                      type="number" min="1"
+                      value={grantForm.durationValue}
+                      onChange={(e) => setGrantForm({ ...grantForm, durationValue: e.target.value })}
+                      className="w-20 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none focus:border-primary-500"
+                    />
+                    <select
+                      value={grantForm.durationUnit}
+                      onChange={(e) => setGrantForm({ ...grantForm, durationUnit: e.target.value })}
+                      className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none focus:border-primary-500"
+                    >
+                      <option value="days">Jour(s)</option>
+                      <option value="months">Mois</option>
+                      <option value="years">An(s)</option>
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Note (optionnel)</label>
+                  <input
+                    type="text"
+                    placeholder="Raison de l'offre..."
+                    value={grantForm.note}
+                    onChange={(e) => setGrantForm({ ...grantForm, note: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm outline-none focus:border-primary-500"
+                  />
+                </div>
+
+                {actionError && <p className="text-xs text-danger-400 bg-danger-400/10 px-3 py-2 rounded-lg">{actionError}</p>}
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => { setGrantModal(false); setActionError(""); }} className="flex-1 px-3 py-2 rounded-lg bg-slate-700 text-sm text-slate-300 hover:bg-slate-600">Annuler</button>
+                  <button onClick={handleGrant} disabled={saving} className="flex-1 px-3 py-2 rounded-lg bg-success-500 text-sm text-white font-medium hover:bg-success-600 disabled:opacity-50">
+                    {saving ? "Enregistrement..." : "Offrir l'accès"}
                   </button>
                 </div>
               </div>
