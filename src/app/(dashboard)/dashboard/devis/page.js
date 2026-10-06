@@ -46,6 +46,7 @@ export default function DevisPage() {
   const [editing, setEditing] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterPeriod, setFilterPeriod] = useState("");
   const [customStart, setCustomStart] = useState("");
@@ -85,6 +86,7 @@ export default function DevisPage() {
     setForm({ client_id: "", status: "brouillon", issue_date: new Date().toISOString().split("T")[0], expiry_date: "", notes: "", conditions: "", apply_stamp: false, apply_tva: false, discount_type: "amount", discount_value: "" });
     setLines([{ ...emptyLine }]);
     setEditing(null);
+    setFormError("");
     setShowForm(true);
   }
 
@@ -100,16 +102,24 @@ export default function DevisPage() {
     });
     setLines(items?.length ? items.map((i) => ({ description: i.description, quantity: i.quantity, unit_price: i.unit_price, tax_rate: i.tax_rate })) : [{ ...emptyLine }]);
     setEditing(quote);
+    setFormError("");
     setShowForm(true);
     setActiveMenu(null);
   }
 
   async function handleSave() {
+    if (!form.client_id) { setFormError("Sélectionnez un client."); return; }
+    const validLines = lines.filter((l) => l.description);
+    if (validLines.length === 0) { setFormError("Ajoutez au moins une ligne avec une description."); return; }
+
     setSaving(true);
+    setFormError("");
     const totals = calcTotals(lines);
     try {
-      const payload = { ...form, client_id: form.client_id || null, discount_value: parseFloat(form.discount_value) || 0, ...totals };
-      const validLines = lines.filter((l) => l.description);
+      // apply_tva pilote uniquement le calcul ci-dessus — ce n'est pas une
+      // colonne de la table quotes, elle ne doit jamais être envoyée à l'API.
+      const { apply_tva, ...formToSave } = form;
+      const payload = { ...formToSave, client_id: form.client_id || null, discount_value: parseFloat(form.discount_value) || 0, ...totals };
 
       let res;
       if (editing) {
@@ -128,7 +138,10 @@ export default function DevisPage() {
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       await fetchAll({ select: "*, clients(company_name, contact_name, email, phone)" });
       setShowForm(false);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      setFormError(e.message || "Une erreur est survenue. Veuillez réessayer.");
+    }
     setSaving(false);
   }
 
@@ -405,6 +418,8 @@ export default function DevisPage() {
           </div>
 
           <Textarea id="notes" label="Notes" placeholder="Notes ou conditions particulières..." value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+
+          {formError && <p className="text-sm text-danger-500 bg-danger-50 px-3 py-2 rounded-lg">{formError}</p>}
 
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" onClick={() => setShowForm(false)}>Annuler</Button>

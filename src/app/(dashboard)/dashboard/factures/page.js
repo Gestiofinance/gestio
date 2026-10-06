@@ -59,6 +59,7 @@ export default function FacturesPage() {
   const [editing, setEditing] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterPeriod, setFilterPeriod] = useState("");
   const [customStart, setCustomStart] = useState("");
@@ -72,7 +73,7 @@ export default function FacturesPage() {
     issue_date: new Date().toISOString().split("T")[0],
     due_date: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
     notes: "", conditions: "", apply_stamp: false, apply_tva: false,
-    discount_type: "amount", discount_value: "",
+    discount_type: "amount", discount_value: "", project_total: "",
   });
   const [lines, setLines] = useState([{ ...emptyLine }]);
   const [paymentForm, setPaymentForm] = useState({ amount: "", payment_date: new Date().toISOString().split("T")[0], payment_method: "virement", reference: "" });
@@ -109,10 +110,10 @@ export default function FacturesPage() {
       client_id: "", type: "standard", status: "brouillon",
       issue_date: new Date().toISOString().split("T")[0],
       due_date: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
-      notes: "", conditions: "", apply_stamp: false, apply_tva: false, discount_type: "amount", discount_value: "",
+      notes: "", conditions: "", apply_stamp: false, apply_tva: false, discount_type: "amount", discount_value: "", project_total: "",
     });
     setLines([{ ...emptyLine }]);
-    setEditing(null); setShowForm(true);
+    setEditing(null); setFormError(""); setShowForm(true);
   }
 
   async function openEdit(inv) {
@@ -124,9 +125,10 @@ export default function FacturesPage() {
       apply_stamp: inv.apply_stamp || false,
       apply_tva: Number(inv.tax_amount) > 0,
       discount_type: inv.discount_type || "amount", discount_value: inv.discount_value || "",
+      project_total: inv.project_total_amount ?? "",
     });
     setLines(items?.length ? items.map((i) => ({ description: i.description, quantity: i.quantity, unit_price: i.unit_price, tax_rate: i.tax_rate })) : [{ ...emptyLine }]);
-    setEditing(inv); setShowForm(true);
+    setEditing(inv); setFormError(""); setShowForm(true);
   }
 
   async function openDetail(inv) {
@@ -140,11 +142,25 @@ export default function FacturesPage() {
   }
 
   async function handleSave() {
+    if (!form.client_id) { setFormError("Sélectionnez un client."); return; }
+    const validLines = lines.filter((l) => l.description);
+    if (validLines.length === 0) { setFormError("Ajoutez au moins une ligne avec une description."); return; }
+
     setSaving(true);
+    setFormError("");
     const totals = calcTotals(lines);
     try {
-      const payload = { ...form, client_id: form.client_id || null, discount_value: parseFloat(form.discount_value) || 0, ...totals };
-      const validLines = lines.filter((l) => l.description);
+      // apply_tva est un état d'interface (pilote le calcul de tax_amount
+      // ci-dessus) : ce n'est pas une colonne de la table invoices, elle ne
+      // doit jamais être envoyée à l'API sous peine de faire échouer l'insert.
+      const { apply_tva, project_total, ...formToSave } = form;
+      const payload = {
+        ...formToSave,
+        client_id: form.client_id || null,
+        discount_value: parseFloat(form.discount_value) || 0,
+        project_total_amount: form.type === "acompte" && project_total !== "" ? parseFloat(project_total) : null,
+        ...totals,
+      };
 
       let res;
       if (editing) {
@@ -163,7 +179,10 @@ export default function FacturesPage() {
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       await fetchAll({ select: "*, clients(company_name, contact_name, email, phone)" });
       setShowForm(false);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      setFormError(e.message || "Une erreur est survenue. Veuillez réessayer.");
+    }
     setSaving(false);
   }
 
@@ -220,6 +239,9 @@ export default function FacturesPage() {
   }
 
   const totals = calcTotals(lines);
+  const isAcompte = form.type === "acompte";
+  const projectTotal = parseFloat(form.project_total) || 0;
+  const reliquat = projectTotal - totals.total;
 
   function shareWhatsApp(row) {
     const phone = row.clients?.phone?.replace(/\s/g, "") || "";
@@ -382,6 +404,10 @@ export default function FacturesPage() {
             <Select id="type" name="type" label="Type" options={typeOptions} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} />
             <Input id="issue_date" label="Date d'émission" type="date" value={form.issue_date} onChange={(e) => setForm({ ...form, issue_date: e.target.value })} />
             <Input id="due_date" label="Échéance" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+            {form.type === "acompte" && (
+              <Input id="project_total" label="Montant total du projet" type="number" min="0" placeholder="0"
+                value={form.project_total} onChange={(e) => setForm({ ...form, project_total: e.target.value })} />
+            )}
           </div>
 
           <div>
@@ -425,7 +451,16 @@ export default function FacturesPage() {
               {form.apply_tva && (
                 <div className="flex justify-between"><span className="text-muted">TVA (18%)</span><span className="font-medium">{formatCurrency(totals.tax_amount)}</span></div>
               )}
-              <div className="flex justify-between border-t border-slate-200 pt-2"><span className="font-semibold">{form.apply_tva ? "Total TTC" : "Total"}</span><span className="font-bold text-lg">{formatCurrency(totals.total)}</span></div>
+              <div className="flex justify-between border-t border-slate-200 pt-2">
+                <span className="font-semibold">{isAcompte ? "Acompte reçu" : form.apply_tva ? "Total TTC" : "Total"}</span>
+                <span className="font-bold text-lg">{formatCurrency(totals.total)}</span>
+              </div>
+              {isAcompte && form.project_total !== "" && (
+                <div className="flex justify-between">
+                  <span className="text-muted">Reliquat</span>
+                  <span className={`font-semibold ${reliquat < 0 ? "text-danger-500" : "text-foreground"}`}>{formatCurrency(reliquat)}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -464,6 +499,8 @@ export default function FacturesPage() {
 
           <Textarea id="notes" label="Notes" placeholder="Notes ou conditions..." value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
 
+          {formError && <p className="text-sm text-danger-500 bg-danger-50 px-3 py-2 rounded-lg">{formError}</p>}
+
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" onClick={() => setShowForm(false)}>Annuler</Button>
             <Button onClick={handleSave} disabled={saving}>{saving ? "Enregistrement..." : editing ? "Modifier" : "Créer la facture"}</Button>
@@ -485,9 +522,20 @@ export default function FacturesPage() {
             <div className="grid grid-cols-4 gap-4 text-sm">
               <div><p className="text-muted">Émission</p><p>{formatShortDate(showDetail.issue_date)}</p></div>
               <div><p className="text-muted">Échéance</p><p>{showDetail.due_date ? formatShortDate(showDetail.due_date) : "—"}</p></div>
-              <div className="text-right"><p className="text-muted">Total</p><p className="font-bold text-lg">{formatCurrency(showDetail.total)}</p></div>
+              <div className="text-right"><p className="text-muted">{showDetail.type === "acompte" ? "Acompte reçu" : "Total"}</p><p className="font-bold text-lg">{formatCurrency(showDetail.total)}</p></div>
               <div className="text-right"><p className="text-muted">Payé</p><p className="font-bold text-lg text-success-500">{formatCurrency(showDetail.paid_amount)}</p></div>
             </div>
+            {showDetail.type === "acompte" && showDetail.project_total_amount > 0 && (
+              <div className="grid grid-cols-2 gap-4 text-sm p-3 bg-slate-50 rounded-lg">
+                <div><p className="text-muted">Montant total du projet</p><p className="font-medium">{formatCurrency(showDetail.project_total_amount)}</p></div>
+                <div className="text-right">
+                  <p className="text-muted">Reliquat</p>
+                  <p className={`font-bold ${Number(showDetail.project_total_amount) - Number(showDetail.total) < 0 ? "text-danger-500" : "text-foreground"}`}>
+                    {formatCurrency(Number(showDetail.project_total_amount) - Number(showDetail.total))}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {detailItems.length > 0 && (
               <div>
