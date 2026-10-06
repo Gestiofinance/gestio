@@ -27,6 +27,7 @@ const roleLabels = {
 };
 
 const MODULES = [
+  { key: "accueil", label: "Accueil" },
   { key: "clients", label: "Clients" },
   { key: "projets", label: "Projets" },
   { key: "taches", label: "Tâches" },

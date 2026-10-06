@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { SidebarProvider } from "@/contexts/sidebar-context";
 import { SubscriptionGate } from "@/components/subscription-gate";
 import { AuthProvider } from "@/contexts/auth-context";
+import { VisitorNotifications } from "@/components/notifications/visitor-notifications";
 
 export default function DashboardLayout({ children }) {
   return (
@@ -12,6 +13,7 @@ export default function DashboardLayout({ children }) {
           <main className="flex-1 lg:ml-64 overflow-y-auto">
             <SubscriptionGate>{children}</SubscriptionGate>
           </main>
+          <VisitorNotifications />
         </div>
       </SidebarProvider>
     </AuthProvider>
