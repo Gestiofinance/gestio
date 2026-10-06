@@ -21,6 +21,9 @@ export function DocumentPDF({ type, data, items, organization, template = "moder
   const docLabel = isQuote ? "DEVIS" : "FACTURE";
   const docNumber = isQuote ? data.quote_number : data.invoice_number;
   const clientName = data.clients?.company_name || data.clients?.contact_name || "—";
+  const isDeposit = !isQuote && data.type === "acompte";
+  const projectTotal = Number(data.project_total_amount) || 0;
+  const remaining = projectTotal - Number(data.total || 0);
 
   return (
     <Document>
@@ -127,10 +130,22 @@ export function DocumentPDF({ type, data, items, organization, template = "moder
                 <Text style={s.totalValue}>-{formatCurrency(data.discount_amount)}</Text>
               </View>
             )}
+            {isDeposit && projectTotal > 0 && (
+              <View style={s.totalRow}>
+                <Text style={s.totalLabel}>Montant total du projet</Text>
+                <Text style={s.totalValue}>{formatCurrency(projectTotal)}</Text>
+              </View>
+            )}
             <View style={s.totalRowFinal}>
-              <Text style={s.totalFinalLabel}>Total TTC</Text>
+              <Text style={s.totalFinalLabel}>{isDeposit ? "Acompte reçu" : "Total TTC"}</Text>
               <Text style={s.totalFinalValue}>{formatCurrency(data.total)}</Text>
             </View>
+            {isDeposit && projectTotal > 0 && (
+              <View style={{ ...s.totalRow, marginTop: 6 }}>
+                <Text style={s.totalLabel}>Reliquat</Text>
+                <Text style={s.totalValue}>{formatCurrency(remaining)}</Text>
+              </View>
+            )}
           </View>
         </View>
 
