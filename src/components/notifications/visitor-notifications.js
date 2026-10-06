@@ -8,9 +8,21 @@ import { useAuth } from "@/hooks/useAuth";
 export function VisitorNotifications() {
   const { profile, organization, supabase } = useAuth();
   const [toasts, setToasts] = useState([]);
+  const [myPersonnelIds, setMyPersonnelIds] = useState([]);
+
+  // A profile can be linked to a personnel entry (so the DG, if also a
+  // team member, gets notified when selected as host).
+  useEffect(() => {
+    if (!profile?.id || !supabase) return;
+    supabase
+      .from("personnel")
+      .select("id")
+      .eq("profile_id", profile.id)
+      .then(({ data }) => setMyPersonnelIds((data || []).map((p) => p.id)));
+  }, [profile?.id, supabase]);
 
   useEffect(() => {
-    if (!profile?.id || !organization?.id || !supabase) return;
+    if (!organization?.id || !supabase || myPersonnelIds.length === 0) return;
 
     const channel = supabase
       .channel(`visitor-appointments-${organization.id}`)
@@ -24,7 +36,7 @@ export function VisitorNotifications() {
         },
         (payload) => {
           const visit = payload.new;
-          if (visit.host_id !== profile.id) return;
+          if (!myPersonnelIds.includes(visit.host_id)) return;
           const id = visit.id;
           setToasts((t) => [...t, { id, name: visit.full_name }]);
           setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 15000);
@@ -33,7 +45,7 @@ export function VisitorNotifications() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [profile?.id, organization?.id, supabase]);
+  }, [organization?.id, supabase, myPersonnelIds]);
 
   if (toasts.length === 0) return null;
 

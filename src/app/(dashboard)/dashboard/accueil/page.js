@@ -9,9 +9,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useCrud, useSupabase, getOrgId } from "@/hooks/useSupabase";
+import { useCrud } from "@/hooks/useSupabase";
 import {
   ConciergeBell, Plus, Phone, UserCheck, UserCircle2, Trash2, UserPlus, Search,
 } from "lucide-react";
@@ -33,14 +32,13 @@ function nowLocalInput() {
   return d.toISOString().slice(0, 16);
 }
 
-const emptyForm = { full_name: "", phone: "", visit_date: nowLocalInput(), host_id: "", notes: "" };
+const emptyForm = { full_name: "", phone: "", visit_date: nowLocalInput(), host_name: "", notes: "" };
 
 export default function AccueilPage() {
-  const supabase = useSupabase();
   const { data: visits, loading, fetchAll, create, update, remove } = useCrud("visitor_appointments");
+  const { data: personnel, fetchAll: fetchPersonnel, create: createPersonnel } = useCrud("personnel");
   const { create: createClient } = useCrud("clients");
 
-  const [members, setMembers] = useState([]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -51,22 +49,13 @@ export default function AccueilPage() {
 
   const load = useCallback(async () => {
     await fetchAll({ select: "*, host:host_id(full_name)", order: { column: "visit_date", ascending: false } });
-    const orgId = await getOrgId(supabase);
-    if (orgId) {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .eq("organization_id", orgId)
-        .eq("is_active", true)
-        .order("full_name");
-      setMembers(data || []);
-    }
-  }, [fetchAll, supabase]);
+    await fetchPersonnel({ order: { column: "full_name", ascending: true } });
+  }, [fetchAll, fetchPersonnel]);
 
   useEffect(() => { load(); }, [load]);
 
   function openCreate() {
-    setForm({ ...emptyForm, visit_date: nowLocalInput(), host_id: members[0]?.id || "" });
+    setForm({ ...emptyForm, visit_date: nowLocalInput() });
     setShowForm(true);
   }
 
@@ -74,14 +63,26 @@ export default function AccueilPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
+  // Resolves the typed name to an existing personnel record, or creates a
+  // new one on the fly so it's proposed in the list next time.
+  async function resolveHostId(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const existing = personnel.find((p) => p.full_name.trim().toLowerCase() === trimmed.toLowerCase());
+    if (existing) return existing.id;
+    const created = await createPersonnel({ full_name: trimmed });
+    return created.id;
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
+      const host_id = await resolveHostId(form.host_name);
       await create({
         full_name: form.full_name,
         phone: form.phone || null,
         visit_date: new Date(form.visit_date).toISOString(),
-        host_id: form.host_id || null,
+        host_id,
         notes: form.notes || null,
       });
       await load();
@@ -171,7 +172,7 @@ export default function AccueilPage() {
           <EmptyState
             icon={ConciergeBell}
             title="Aucun visiteur enregistré"
-            description="Enregistrez une personne qui se présente à l'accueil pour rencontrer un membre de l'équipe."
+            description="Enregistrez une personne qui se présente à l'accueil pour rencontrer un membre du personnel."
             actionLabel="Nouveau visiteur"
             onAction={openCreate}
           />
@@ -241,11 +242,17 @@ export default function AccueilPage() {
               value={form.visit_date} onChange={handleChange}
             />
           </div>
-          <Select
-            id="host_id" name="host_id" label="Personne à rencontrer"
-            options={members.map((m) => ({ value: m.id, label: m.full_name }))}
-            value={form.host_id} onChange={handleChange}
-          />
+          <div>
+            <Input
+              id="host_name" name="host_name" label="Personne à rencontrer"
+              list="personnel-options"
+              placeholder="Nom de la personne (tapez pour en ajouter une nouvelle)"
+              value={form.host_name} onChange={handleChange}
+            />
+            <datalist id="personnel-options">
+              {personnel.map((p) => <option key={p.id} value={p.full_name} />)}
+            </datalist>
+          </div>
           <Textarea
             id="notes" name="notes" label="Motif de la visite (optionnel)"
             placeholder="Objet du rendez-vous..." value={form.notes} onChange={handleChange}
