@@ -20,9 +20,9 @@ import {
 } from "lucide-react";
 
 const statusOptions = [
-  { value: "actif", label: "Actif" },
-  { value: "inactif", label: "Inactif" },
+  { value: "client", label: "Client" },
   { value: "prospect", label: "Prospect" },
+  { value: "non_converti", label: "Non converti" },
 ];
 
 const typeOptions = [
@@ -31,9 +31,21 @@ const typeOptions = [
 ];
 
 const statusColors = {
-  actif: "success",
-  inactif: "default",
+  client: "success",
   prospect: "primary",
+  non_converti: "default",
+};
+
+const statusLabels = {
+  client: "Client",
+  prospect: "Prospect",
+  non_converti: "Non converti",
+};
+
+const statusSelectClasses = {
+  client: "bg-success-50 text-success-600",
+  prospect: "bg-primary-50 text-primary-700",
+  non_converti: "bg-slate-100 text-slate-700",
 };
 
 const emptyForm = {
@@ -47,7 +59,7 @@ const emptyForm = {
   ninea: "",
   rccm: "",
   notes: "",
-  status: "actif",
+  status: "prospect",
 };
 
 export default function ClientsPage() {
@@ -125,6 +137,15 @@ export default function ClientsPage() {
     setSaving(false);
   }
 
+  async function handleStatusChange(client, status) {
+    try {
+      await update(client.id, { status });
+      await fetchAll();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   async function handleDelete() {
     if (!deleteConfirm) return;
     try {
@@ -168,7 +189,18 @@ export default function ClientsPage() {
     {
       key: "status",
       label: "Statut",
-      render: (v) => <Badge variant={statusColors[v]}>{v}</Badge>,
+      render: (v, row) => (
+        <select
+          value={v}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => handleStatusChange(row, e.target.value)}
+          className={`text-xs font-medium rounded-full pl-2.5 pr-6 py-1 border-0 cursor-pointer outline-none ${statusSelectClasses[v]}`}
+        >
+          {statusOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      ),
     },
     {
       key: "actions",
@@ -183,8 +215,8 @@ export default function ClientsPage() {
     },
   ];
 
-  const kanbanStatuses = ["prospect", "actif", "inactif"];
-  const kanbanLabels = { prospect: "Prospects", actif: "Actifs", inactif: "Inactifs" };
+  const kanbanStatuses = ["prospect", "client", "non_converti"];
+  const kanbanLabels = { prospect: "Prospects", client: "Clients", non_converti: "Non convertis" };
 
   return (
     <div onClick={() => setActiveMenu(null)}>
@@ -208,9 +240,9 @@ export default function ClientsPage() {
             <div className="flex flex-wrap items-center gap-2">
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
                 <option value="">Statut</option>
-                <option value="actif">Actif</option>
+                <option value="client">Client</option>
                 <option value="prospect">Prospect</option>
-                <option value="inactif">Inactif</option>
+                <option value="non_converti">Non converti</option>
               </select>
               <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="hidden sm:block flex-none px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
                 <option value="">Tous les types</option>
@@ -255,7 +287,16 @@ export default function ClientsPage() {
                             <p className="font-semibold text-foreground text-sm truncate">{client.company_name || client.contact_name}</p>
                             {client.company_name && <p className="text-xs text-muted">{client.contact_name}</p>}
                           </div>
-                          <Badge variant={statusColors[client.status]} className="flex-shrink-0 text-xs">{client.status}</Badge>
+                          <select
+                            value={client.status}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => handleStatusChange(client, e.target.value)}
+                            className={`flex-shrink-0 text-xs font-medium rounded-full pl-2 pr-5 py-0.5 border-0 cursor-pointer outline-none ${statusSelectClasses[client.status]}`}
+                          >
+                            {statusOptions.map((o) => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                          </select>
                         </div>
                         <div className="mt-2 space-y-0.5">
                           {client.email && <p className="text-xs text-slate-500 truncate">{client.email}</p>}
@@ -491,7 +532,7 @@ export default function ClientsPage() {
                   <p className="text-sm text-muted">{showDetail.contact_name}</p>
                 )}
                 <Badge variant={statusColors[showDetail.status]} className="mt-1">
-                  {showDetail.status}
+                  {statusLabels[showDetail.status]}
                 </Badge>
               </div>
             </div>
