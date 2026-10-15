@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DateFilter, applyDateFilter } from "@/components/ui/date-filter";
 import { useCrud } from "@/hooks/useSupabase";
 import {
-  Users, Plus, Search, Building2, User, Mail, Phone, MapPin, MoreVertical, Pencil, Trash2, Eye,
+  Users, Plus, Search, Building2, User, Mail, Phone, MapPin, MoreVertical, Pencil, Trash2, Eye, Tag, CalendarClock,
 } from "lucide-react";
 
 const statusOptions = [
@@ -60,10 +60,18 @@ const emptyForm = {
   rccm: "",
   notes: "",
   status: "prospect",
+  interested_product_id: "",
+  next_followup_date: "",
 };
+
+function isOverdue(dateStr) {
+  if (!dateStr) return false;
+  return new Date(dateStr) < new Date(new Date().toDateString());
+}
 
 export default function ClientsPage() {
   const { data: clients, loading, fetchAll, create, update, remove } = useCrud("clients");
+  const { data: catalogItems, fetchAll: fetchCatalogItems } = useCrud("catalog_items");
   const [view, setView] = useState("liste");
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -80,7 +88,14 @@ export default function ClientsPage() {
 
   useEffect(() => {
     fetchAll();
-  }, [fetchAll]);
+    fetchCatalogItems({ filters: [["is_active", "eq", true]], order: { column: "name", ascending: true } });
+  }, [fetchAll, fetchCatalogItems]);
+
+  const productOptions = [
+    { value: "", label: catalogItems.length ? "— Aucun —" : "— Aucun produit dans le catalogue —" },
+    ...catalogItems.map((p) => ({ value: p.id, label: p.name })),
+  ];
+  const productById = Object.fromEntries(catalogItems.map((p) => [p.id, p]));
 
   const filteredClients = applyDateFilter(
     clients.filter((c) => {
@@ -115,6 +130,8 @@ export default function ClientsPage() {
       rccm: client.rccm || "",
       notes: client.notes || "",
       status: client.status,
+      interested_product_id: client.interested_product_id || "",
+      next_followup_date: client.next_followup_date || "",
     });
     setEditingClient(client);
     setShowForm(true);
@@ -124,10 +141,15 @@ export default function ClientsPage() {
   async function handleSave() {
     setSaving(true);
     try {
+      const payload = {
+        ...form,
+        interested_product_id: form.interested_product_id || null,
+        next_followup_date: form.next_followup_date || null,
+      };
       if (editingClient) {
-        await update(editingClient.id, form);
+        await update(editingClient.id, payload);
       } else {
-        await create(form);
+        await create(payload);
       }
       await fetchAll();
       setShowForm(false);
@@ -201,6 +223,15 @@ export default function ClientsPage() {
           ))}
         </select>
       ),
+    },
+    {
+      key: "next_followup_date",
+      label: "Relance",
+      render: (v) => v ? (
+        <span className={`text-xs font-medium flex items-center gap-1 ${isOverdue(v) ? "text-danger-500" : "text-slate-600"}`}>
+          <CalendarClock className="w-3.5 h-3.5" /> {new Date(v).toLocaleDateString("fr-FR")}
+        </span>
+      ) : <span className="text-slate-300 text-xs">—</span>,
     },
     {
       key: "actions",
@@ -301,6 +332,11 @@ export default function ClientsPage() {
                         <div className="mt-2 space-y-0.5">
                           {client.email && <p className="text-xs text-slate-500 truncate">{client.email}</p>}
                           {client.phone && <p className="text-xs text-slate-500">{client.phone}</p>}
+                          {client.next_followup_date && (
+                            <p className={`text-xs flex items-center gap-1 ${isOverdue(client.next_followup_date) ? "text-danger-500 font-medium" : "text-slate-500"}`}>
+                              <CalendarClock className="w-3 h-3" /> Relance : {new Date(client.next_followup_date).toLocaleDateString("fr-FR")}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -488,11 +524,29 @@ export default function ClientsPage() {
               />
             </div>
           )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Select
+              id="interested_product_id"
+              name="interested_product_id"
+              label="Produit / offre qui l'intéresse"
+              options={productOptions}
+              value={form.interested_product_id}
+              onChange={handleChange}
+            />
+            <Input
+              id="next_followup_date"
+              name="next_followup_date"
+              label="Prochaine relance"
+              type="date"
+              value={form.next_followup_date}
+              onChange={handleChange}
+            />
+          </div>
           <Textarea
             id="notes"
             name="notes"
             label="Notes internes"
-            placeholder="Notes sur ce client..."
+            placeholder="Historique, besoins spécifiques et antécédents du client..."
             value={form.notes}
             onChange={handleChange}
           />
@@ -568,6 +622,24 @@ export default function ClientsPage() {
                   <div>
                     <p className="text-xs text-muted mb-0.5">RCCM</p>
                     <p className="text-sm font-medium">{showDetail.rccm}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {(showDetail.interested_product_id || showDetail.next_followup_date) && (
+              <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg">
+                {showDetail.interested_product_id && (
+                  <div>
+                    <p className="text-xs text-muted mb-0.5 flex items-center gap-1"><Tag className="w-3.5 h-3.5" /> Produit / offre</p>
+                    <p className="text-sm font-medium">{productById[showDetail.interested_product_id]?.name || "—"}</p>
+                  </div>
+                )}
+                {showDetail.next_followup_date && (
+                  <div>
+                    <p className="text-xs text-muted mb-0.5 flex items-center gap-1"><CalendarClock className="w-3.5 h-3.5" /> Prochaine relance</p>
+                    <p className={`text-sm font-medium ${isOverdue(showDetail.next_followup_date) ? "text-danger-500" : ""}`}>
+                      {new Date(showDetail.next_followup_date).toLocaleDateString("fr-FR")}
+                    </p>
                   </div>
                 )}
               </div>
