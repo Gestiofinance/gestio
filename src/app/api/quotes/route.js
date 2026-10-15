@@ -44,6 +44,7 @@ export async function POST(request) {
       await admin.from("quote_items").insert(
         lines.map((l, i) => ({
           quote_id: quote.id,
+          catalog_item_id: l.catalog_item_id || null,
           description: l.description,
           quantity: l.quantity,
           unit_price: l.unit_price,
@@ -81,6 +82,7 @@ export async function PUT(request) {
       await admin.from("quote_items").insert(
         lines.map((l, i) => ({
           quote_id: id,
+          catalog_item_id: l.catalog_item_id || null,
           description: l.description,
           quantity: l.quantity,
           unit_price: l.unit_price,

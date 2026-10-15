@@ -33,13 +33,14 @@ const statusOptions = [
   { value: "expire", label: "Expiré" },
 ];
 
-const emptyLine = { description: "", quantity: 1, unit_price: 0, tax_rate: 18 };
+const emptyLine = { description: "", quantity: 1, unit_price: 0, tax_rate: 18, catalog_item_id: null };
 
 export default function DevisPage() {
   const router = useRouter();
   const supabase = useSupabase();
   const { data: quotes, loading, fetchAll, remove } = useCrud("quotes");
   const { data: clients, fetchAll: fetchClients } = useCrud("clients");
+  const { data: catalogItems, fetchAll: fetchCatalogItems } = useCrud("catalog_items");
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showDetail, setShowDetail] = useState(null);
@@ -62,7 +63,8 @@ export default function DevisPage() {
   useEffect(() => {
     fetchAll({ select: "*, clients(company_name, contact_name, email, phone)" });
     fetchClients();
-  }, [fetchAll, fetchClients]);
+    fetchCatalogItems({ filters: [["is_active", "eq", true]], order: { column: "name", ascending: true } });
+  }, [fetchAll, fetchClients, fetchCatalogItems]);
 
   const filtered = applyDateFilter(
     quotes.filter((q) => {
@@ -100,7 +102,7 @@ export default function DevisPage() {
       apply_tva: Number(quote.tax_amount) > 0,
       discount_type: quote.discount_type || "amount", discount_value: quote.discount_value || "",
     });
-    setLines(items?.length ? items.map((i) => ({ description: i.description, quantity: i.quantity, unit_price: i.unit_price, tax_rate: i.tax_rate })) : [{ ...emptyLine }]);
+    setLines(items?.length ? items.map((i) => ({ description: i.description, quantity: i.quantity, unit_price: i.unit_price, tax_rate: i.tax_rate, catalog_item_id: i.catalog_item_id || null })) : [{ ...emptyLine }]);
     setEditing(quote);
     setFormError("");
     setShowForm(true);
@@ -190,6 +192,18 @@ export default function DevisPage() {
 
   function addLine() { setLines([...lines, { ...emptyLine }]); }
   function removeLine(index) { setLines(lines.filter((_, i) => i !== index)); }
+
+  function addLineFromCatalog(catalogItemId) {
+    const item = catalogItems.find((c) => c.id === catalogItemId);
+    if (!item) return;
+    setLines([...lines, {
+      description: item.name,
+      quantity: 1,
+      unit_price: item.unit_price,
+      tax_rate: item.tax_rate,
+      catalog_item_id: item.id,
+    }]);
+  }
 
   const totals = calcTotals(lines);
 
@@ -356,7 +370,21 @@ export default function DevisPage() {
               ))}
             </div>
             </div>
-            <Button variant="ghost" size="sm" className="mt-2" onClick={addLine}><Plus className="w-4 h-4" /> Ajouter une ligne</Button>
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <Button variant="ghost" size="sm" onClick={addLine}><Plus className="w-4 h-4" /> Ajouter une ligne</Button>
+              {catalogItems.length > 0 && (
+                <select
+                  value=""
+                  onChange={(e) => { if (e.target.value) addLineFromCatalog(e.target.value); }}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 bg-white"
+                >
+                  <option value="">+ Depuis le catalogue...</option>
+                  {catalogItems.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} — {formatCurrency(c.unit_price)}</option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
 
           {/* Remise */}

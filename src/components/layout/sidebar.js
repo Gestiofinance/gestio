@@ -23,6 +23,7 @@ import {
   LifeBuoy,
   ConciergeBell,
   IdCard,
+  Package,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,6 +38,7 @@ const navigation = [
   { name: "Projets", href: "/dashboard/projets", icon: FolderKanban, moduleKey: "projets" },
   { name: "Tâches", href: "/dashboard/taches", icon: CheckSquare, moduleKey: "taches" },
   { name: "Planning", href: "/dashboard/planning", icon: Calendar, moduleKey: "planning" },
+  { name: "Services/Produits", href: "/dashboard/produits", icon: Package, moduleKey: "produits" },
   { name: "Devis", href: "/dashboard/devis", icon: FileText, moduleKey: "devis" },
   { name: "Factures", href: "/dashboard/factures", icon: Receipt, moduleKey: "factures" },
   { name: "Comptabilité", href: "/dashboard/comptabilite", icon: PieChart, moduleKey: "comptabilite" },

@@ -46,6 +46,7 @@ export async function POST(request) {
       await admin.from("invoice_items").insert(
         itemSource.map((l, i) => ({
           invoice_id: invoice.id,
+          catalog_item_id: l.catalog_item_id || null,
           description: l.description,
           quantity: l.quantity,
           unit_price: l.unit_price,
@@ -89,6 +90,7 @@ export async function PUT(request) {
       await admin.from("invoice_items").insert(
         lines.map((l, i) => ({
           invoice_id: id,
+          catalog_item_id: l.catalog_item_id || null,
           description: l.description,
           quantity: l.quantity,
           unit_price: l.unit_price,
