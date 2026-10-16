@@ -78,6 +78,7 @@ export default function ProduitsPage() {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   async function loadSales() {
@@ -126,6 +127,7 @@ export default function ProduitsPage() {
     setImageFile(null);
     setImagePreview("");
     setFormStep("type");
+    setFormError("");
     setShowForm(true);
   }
 
@@ -143,6 +145,7 @@ export default function ProduitsPage() {
     setImageFile(null);
     setImagePreview(p.image_url || "");
     setFormStep("details");
+    setFormError("");
     setShowForm(true);
   }
 
@@ -154,6 +157,7 @@ export default function ProduitsPage() {
 
   async function handleSave() {
     setSaving(true);
+    setFormError("");
     try {
       const payload = {
         name: form.name,
@@ -181,6 +185,7 @@ export default function ProduitsPage() {
       setShowForm(false);
     } catch (e) {
       console.error(e);
+      setFormError(e.message || "Une erreur est survenue, veuillez réessayer.");
     }
     setSaving(false);
   }
@@ -358,6 +363,8 @@ export default function ProduitsPage() {
             ) : (
               <Input label="Durée estimée (optionnel)" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} placeholder="Ex. 2 heures, 1 jour..." />
             )}
+
+            {formError && <p className="text-sm text-danger-500 bg-danger-50 px-3 py-2 rounded-lg">{formError}</p>}
 
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="secondary" onClick={() => setShowForm(false)}>Annuler</Button>
