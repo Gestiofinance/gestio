@@ -13,7 +13,7 @@ import { useSupabase, getOrgId } from "@/hooks/useSupabase";
 import { formatCurrency } from "@/lib/utils";
 import {
   ChevronLeft, ChevronRight, Calendar, CheckSquare, Receipt, FolderKanban,
-  Plus, Clock, Flag, X,
+  Plus, Clock, Flag, X, PhoneCall,
 } from "lucide-react";
 
 const DAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
@@ -32,6 +32,8 @@ const invoiceStatusLabels = { brouillon: "Brouillon", envoyee: "Envoyée", parti
 const invoiceStatusColors = { brouillon: "default", envoyee: "primary", partiellement_payee: "warning", payee: "success", en_retard: "danger", annulee: "default" };
 const projectStatusLabels = { a_demarrer: "À démarrer", en_cours: "En cours", en_pause: "En pause", termine: "Terminé", annule: "Annulé" };
 const projectStatusColors = { a_demarrer: "default", en_cours: "primary", en_pause: "warning", termine: "success", annule: "danger" };
+const clientStatusLabels = { client: "Client", prospect: "Prospect", non_converti: "Non converti" };
+const clientStatusColors = { client: "success", prospect: "primary", non_converti: "default" };
 
 export default function PlanningPage() {
   const supabase = useSupabase();
@@ -39,6 +41,7 @@ export default function PlanningPage() {
   const [tasks, setTasks] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [relances, setRelances] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedEvents, setSelectedEvents] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
@@ -54,16 +57,18 @@ export default function PlanningPage() {
   }, []);
 
   async function loadData() {
-    const [{ data: t }, { data: i }, { data: p }, { data: allProjects }] = await Promise.all([
+    const [{ data: t }, { data: i }, { data: p }, { data: allProjects }, { data: r }] = await Promise.all([
       supabase.from("tasks").select("id, title, due_date, priority, status, description, projects(name)").not("due_date", "is", null),
       supabase.from("invoices").select("id, invoice_number, due_date, status, total, clients(company_name, contact_name)").not("due_date", "is", null),
       supabase.from("projects").select("id, name, due_date, status, budget, clients(company_name, contact_name)").not("due_date", "is", null),
       supabase.from("projects").select("id, name"),
+      supabase.from("clients").select("id, company_name, contact_name, phone, status, next_followup_date, catalog_items(name)").not("next_followup_date", "is", null),
     ]);
     setTasks(t || []);
     setInvoices(i || []);
     setProjects(p || []);
     setProjectsList(allProjects || []);
+    setRelances(r || []);
   }
 
   const year = currentDate.getFullYear();
@@ -112,6 +117,13 @@ export default function PlanningPage() {
         type: "project", label: p.name, icon: FolderKanban,
         color: "text-violet-500",
         data: p,
+      });
+    });
+    relances.filter((c) => c.next_followup_date === dateStr).forEach((c) => {
+      events.push({
+        type: "relance", label: c.company_name || c.contact_name, icon: PhoneCall,
+        color: "text-rose-500",
+        data: c,
       });
     });
     return events;
@@ -170,6 +182,9 @@ export default function PlanningPage() {
   });
   projects.filter((p) => !["termine", "annule"].includes(p.status) && new Date(p.due_date) <= next7 && new Date(p.due_date) >= today).forEach((p) => {
     upcomingEvents.push({ date: p.due_date, label: p.name, type: "Projet", icon: FolderKanban, color: "text-violet-500" });
+  });
+  relances.filter((c) => new Date(c.next_followup_date) <= next7 && new Date(c.next_followup_date) >= today).forEach((c) => {
+    upcomingEvents.push({ date: c.next_followup_date, label: c.company_name || c.contact_name, type: "Relance", icon: PhoneCall, color: "text-rose-500" });
   });
   upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -231,6 +246,8 @@ export default function PlanningPage() {
                         }
                       } else if (dominant === "project") {
                         cellBg = "bg-violet-500/10"; cellBorder = "border-violet-500/30"; textColor = "text-violet-600";
+                      } else if (dominant === "relance") {
+                        cellBg = "bg-rose-50"; cellBorder = "border-rose-500/30"; textColor = "text-rose-600";
                       }
                     }
 
@@ -308,6 +325,7 @@ export default function PlanningPage() {
                 <div className="flex items-center gap-2"><CheckSquare className="w-3 h-3 text-primary-500" /> Tâches</div>
                 <div className="flex items-center gap-2"><Receipt className="w-3 h-3 text-warning-500" /> Échéances factures</div>
                 <div className="flex items-center gap-2"><FolderKanban className="w-3 h-3 text-violet-500" /> Échéances projets</div>
+                <div className="flex items-center gap-2"><PhoneCall className="w-3 h-3 text-rose-500" /> Relances clients</div>
               </div>
             </Card>
           </div>
@@ -326,7 +344,7 @@ export default function PlanningPage() {
             <div key={i} className="p-4 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
               <div className="flex items-start gap-3">
                 <div className={`p-2 rounded-lg ${
-                  ev.type === "task" ? "bg-primary-50" : ev.type === "invoice" ? "bg-warning-50" : "bg-violet-500/10"
+                  ev.type === "task" ? "bg-primary-50" : ev.type === "invoice" ? "bg-warning-50" : ev.type === "project" ? "bg-violet-500/10" : "bg-rose-50"
                 }`}>
                   <ev.icon className={`w-5 h-5 ${ev.color}`} />
                 </div>
@@ -342,12 +360,16 @@ export default function PlanningPage() {
                     {ev.type === "project" && (
                       <Badge variant={projectStatusColors[ev.data.status]}>{projectStatusLabels[ev.data.status]}</Badge>
                     )}
+                    {ev.type === "relance" && (
+                      <Badge variant={clientStatusColors[ev.data.status]}>{clientStatusLabels[ev.data.status]}</Badge>
+                    )}
                   </div>
 
                   <p className="text-xs text-muted mt-0.5">
                     {ev.type === "task" && "Tâche"}
                     {ev.type === "invoice" && "Échéance facture"}
                     {ev.type === "project" && "Échéance projet"}
+                    {ev.type === "relance" && "Relance client"}
                   </p>
 
                   {/* Task details */}
@@ -394,6 +416,18 @@ export default function PlanningPage() {
                         <p className="text-xs text-slate-600">
                           Budget : {formatCurrency(ev.data.budget)}
                         </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Relance details */}
+                  {ev.type === "relance" && (
+                    <div className="mt-2 space-y-1">
+                      {ev.data.phone && (
+                        <p className="text-xs text-slate-600">Téléphone : {ev.data.phone}</p>
+                      )}
+                      {ev.data.catalog_items?.name && (
+                        <p className="text-xs text-slate-600">Intéressé par : {ev.data.catalog_items.name}</p>
                       )}
                     </div>
                   )}
