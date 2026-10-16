@@ -20,13 +20,15 @@ export async function POST(request) {
 
     const formData = await request.formData();
     const file = formData.get("file");
-    const type = formData.get("type"); // "logo" or "stamp"
+    const type = formData.get("type"); // "logo", "stamp" or "product"
+    const itemId = formData.get("itemId"); // required for "product"
 
     if (!file || !type) return NextResponse.json({ error: "Fichier ou type manquant" }, { status: 400 });
+    if (type === "product" && !itemId) return NextResponse.json({ error: "itemId manquant" }, { status: 400 });
 
     const ext = file.name.split(".").pop().toLowerCase();
-    const bucket = type === "logo" ? "logos" : "stamps";
-    const path = `${orgId}/${type}.${ext}`;
+    const bucket = type === "logo" ? "logos" : type === "stamp" ? "stamps" : "products";
+    const path = type === "product" ? `${orgId}/${itemId}.${ext}` : `${orgId}/${type}.${ext}`;
 
     const bytes = await file.arrayBuffer();
     const buffer = new Uint8Array(bytes);
@@ -52,9 +54,12 @@ export async function POST(request) {
     const { data: { publicUrl } } = admin.storage.from(bucket).getPublicUrl(path);
     const url = `${publicUrl}?t=${Date.now()}`;
 
-    // Save URL to organizations table
-    const field = type === "logo" ? "logo_url" : "stamp_url";
-    await admin.from("organizations").update({ [field]: url }).eq("id", orgId);
+    if (type === "product") {
+      await admin.from("catalog_items").update({ image_url: url }).eq("id", itemId).eq("organization_id", orgId);
+    } else {
+      const field = type === "logo" ? "logo_url" : "stamp_url";
+      await admin.from("organizations").update({ [field]: url }).eq("id", orgId);
+    }
 
     return NextResponse.json({ url });
   } catch (e) {

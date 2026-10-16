@@ -10,16 +10,36 @@ import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useCrud, useSupabase } from "@/hooks/useSupabase";
 import { formatCurrency } from "@/lib/utils";
 import {
   Package, Plus, Search, Pencil, Trash2, TrendingUp, ShoppingCart,
+  Wrench, Box, ArrowLeft, ImagePlus, X, Hash, Clock,
 } from "lucide-react";
 import {
   AreaChart, Area, ResponsiveContainer, Tooltip,
 } from "recharts";
 
-const emptyForm = { name: "", description: "", unit_price: "", tax_rate: "18", unit: "unité", type: "service" };
+const emptyForm = { name: "", description: "", unit_price: "", tax_rate: "18", unit: "", type: "", reference: "", duration: "", image_url: "" };
+
+const unitOptionsByType = {
+  produit: [
+    { value: "pièce", label: "Pièce" },
+    { value: "kg", label: "Kg" },
+    { value: "litre", label: "Litre" },
+    { value: "carton", label: "Carton" },
+    { value: "boîte", label: "Boîte" },
+    { value: "unité", label: "Unité" },
+  ],
+  service: [
+    { value: "heure", label: "Heure" },
+    { value: "jour", label: "Jour" },
+    { value: "forfait", label: "Forfait" },
+    { value: "mois", label: "Mois" },
+    { value: "prestation", label: "Prestation" },
+  ],
+};
 
 function monthKey(d) { return `${d.getFullYear()}-${d.getMonth()}`; }
 
@@ -52,8 +72,11 @@ export default function ProduitsPage() {
   const [salesItems, setSalesItems] = useState([]);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [formStep, setFormStep] = useState("type"); // "type" | "details"
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
@@ -100,21 +123,60 @@ export default function ProduitsPage() {
   function openCreate() {
     setForm(emptyForm);
     setEditing(null);
+    setImageFile(null);
+    setImagePreview("");
+    setFormStep("type");
     setShowForm(true);
   }
 
+  function pickType(type) {
+    setForm({ ...emptyForm, type, unit: unitOptionsByType[type][0].value });
+    setFormStep("details");
+  }
+
   function openEdit(p) {
-    setForm({ name: p.name, description: p.description || "", unit_price: String(p.unit_price), tax_rate: String(p.tax_rate), unit: p.unit, type: p.type });
+    setForm({
+      name: p.name, description: p.description || "", unit_price: String(p.unit_price), tax_rate: String(p.tax_rate),
+      unit: p.unit, type: p.type, reference: p.reference || "", duration: p.duration || "", image_url: p.image_url || "",
+    });
     setEditing(p);
+    setImageFile(null);
+    setImagePreview(p.image_url || "");
+    setFormStep("details");
     setShowForm(true);
+  }
+
+  function handleImageChange(file) {
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   }
 
   async function handleSave() {
     setSaving(true);
     try {
-      const payload = { ...form, unit_price: parseFloat(form.unit_price) || 0, tax_rate: parseFloat(form.tax_rate) || 0 };
-      if (editing) await update(editing.id, payload);
-      else await create(payload);
+      const payload = {
+        name: form.name,
+        description: form.description,
+        unit_price: parseFloat(form.unit_price) || 0,
+        tax_rate: parseFloat(form.tax_rate) || 0,
+        unit: form.unit,
+        type: form.type,
+        reference: form.type === "produit" ? (form.reference || null) : null,
+        duration: form.type === "service" ? (form.duration || null) : null,
+      };
+
+      const item = editing ? await update(editing.id, payload) : await create(payload);
+
+      if (imageFile) {
+        const fd = new FormData();
+        fd.append("file", imageFile);
+        fd.append("type", "product");
+        fd.append("itemId", item.id);
+        const res = await fetch("/api/settings/upload", { method: "POST", body: fd });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      }
+
       await fetchAll({ order: { column: "name", ascending: true } });
       setShowForm(false);
     } catch (e) {
@@ -170,13 +232,25 @@ export default function ProduitsPage() {
               return (
                 <Card key={p.id} className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-foreground truncate">{p.name}</p>
-                        <Badge variant={p.type === "produit" ? "primary" : "default"}>{p.type === "produit" ? "Produit" : "Service"}</Badge>
+                    <div className="flex items-start gap-3 min-w-0">
+                      {p.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.image_url} alt={p.name} className="w-12 h-12 rounded-lg object-cover border border-slate-200 shrink-0" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                          {p.type === "produit" ? <Box className="w-5 h-5 text-slate-400" /> : <Wrench className="w-5 h-5 text-slate-400" />}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-foreground truncate">{p.name}</p>
+                          <Badge variant={p.type === "produit" ? "primary" : "default"}>{p.type === "produit" ? "Produit" : "Service"}</Badge>
+                        </div>
+                        {p.description && <p className="text-xs text-muted mt-0.5 truncate">{p.description}</p>}
+                        <p className="text-sm font-medium text-foreground mt-1">{formatCurrency(p.unit_price)} <span className="text-xs text-muted font-normal">/ {p.unit}</span></p>
+                        {p.reference && <p className="text-xs text-muted flex items-center gap-1 mt-0.5"><Hash className="w-3 h-3" /> {p.reference}</p>}
+                        {p.duration && <p className="text-xs text-muted flex items-center gap-1 mt-0.5"><Clock className="w-3 h-3" /> {p.duration}</p>}
                       </div>
-                      {p.description && <p className="text-xs text-muted mt-0.5 truncate">{p.description}</p>}
-                      <p className="text-sm font-medium text-foreground mt-1">{formatCurrency(p.unit_price)} <span className="text-xs text-muted font-normal">/ {p.unit}</span></p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-slate-100" title="Modifier"><Pencil className="w-4 h-4 text-slate-500" /></button>
@@ -206,22 +280,91 @@ export default function ProduitsPage() {
         )}
       </div>
 
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? "Modifier l'article" : "Nouvel article"} size="md">
-        <div className="space-y-4">
-          <Input label="Nom" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <Input label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Input label="Prix unitaire (FCFA)" type="number" value={form.unit_price} onChange={(e) => setForm({ ...form, unit_price: e.target.value })} />
-            <Input label="TVA (%)" type="number" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: e.target.value })} />
-            <Input label="Unité" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
+      <Modal
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title={
+          formStep === "type" ? "Nouvel article"
+          : editing ? "Modifier l'article"
+          : form.type === "produit" ? "Nouveau produit" : "Nouveau service"
+        }
+        size="md"
+      >
+        {formStep === "type" ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted">Quel type d&apos;article voulez-vous ajouter ?</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => pickType("produit")}
+                className="flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-slate-200 hover:border-primary-400 hover:bg-primary-50 transition-colors"
+              >
+                <Box className="w-7 h-7 text-primary-500" />
+                <span className="font-medium text-foreground">Produit</span>
+                <span className="text-xs text-muted text-center">Un bien physique ou numérique</span>
+              </button>
+              <button
+                onClick={() => pickType("service")}
+                className="flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-slate-200 hover:border-primary-400 hover:bg-primary-50 transition-colors"
+              >
+                <Wrench className="w-7 h-7 text-primary-500" />
+                <span className="font-medium text-foreground">Service</span>
+                <span className="text-xs text-muted text-center">Une prestation facturée</span>
+              </button>
+            </div>
           </div>
-          <Select label="Type" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
-            options={[{ value: "service", label: "Service" }, { value: "produit", label: "Produit" }]} />
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="secondary" onClick={() => setShowForm(false)}>Annuler</Button>
-            <Button onClick={handleSave} disabled={saving || !form.name}>{saving ? "Enregistrement..." : editing ? "Modifier" : "Créer"}</Button>
+        ) : (
+          <div className="space-y-4">
+            {!editing && (
+              <button onClick={() => setFormStep("type")} className="flex items-center gap-1 text-xs text-muted hover:text-foreground">
+                <ArrowLeft className="w-3.5 h-3.5" /> Changer de type
+              </button>
+            )}
+
+            <div className="flex items-center gap-4">
+              {imagePreview ? (
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imagePreview} alt="Aperçu" className="w-16 h-16 rounded-lg object-cover border border-slate-200" />
+                  <button
+                    onClick={() => { setImageFile(null); setImagePreview(""); setForm({ ...form, image_url: "" }); }}
+                    className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-danger-500 text-white flex items-center justify-center"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center">
+                  {form.type === "produit" ? <Box className="w-6 h-6 text-slate-400" /> : <Wrench className="w-6 h-6 text-slate-400" />}
+                </div>
+              )}
+              <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 cursor-pointer hover:bg-slate-50">
+                <ImagePlus className="w-4 h-4" />
+                {imagePreview ? "Changer l'image" : "Ajouter une image (optionnel)"}
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageChange(e.target.files?.[0])} />
+              </label>
+            </div>
+
+            <Input label="Nom" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            <Textarea label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Input label="Prix unitaire (FCFA)" type="number" value={form.unit_price} onChange={(e) => setForm({ ...form, unit_price: e.target.value })} />
+              <Input label="TVA (%)" type="number" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: e.target.value })} />
+              <Select label="Unité" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                options={unitOptionsByType[form.type] || unitOptionsByType.service} />
+            </div>
+
+            {form.type === "produit" ? (
+              <Input label="Référence / SKU (optionnel)" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="REF-001" />
+            ) : (
+              <Input label="Durée estimée (optionnel)" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} placeholder="Ex. 2 heures, 1 jour..." />
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="secondary" onClick={() => setShowForm(false)}>Annuler</Button>
+              <Button onClick={handleSave} disabled={saving || !form.name}>{saving ? "Enregistrement..." : editing ? "Modifier" : "Créer"}</Button>
+            </div>
           </div>
-        </div>
+        )}
       </Modal>
 
       <ConfirmDialog
