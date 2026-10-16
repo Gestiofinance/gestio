@@ -1,4 +1,5 @@
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { ReferralCapture } from "@/components/affiliate/referral-capture";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -18,7 +19,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="fr" className={`${plusJakarta.variable} h-full`}>
-      <body className="h-full antialiased">{children}</body>
+      <body className="h-full antialiased">
+        <ReferralCapture />
+        {children}
+      </body>
     </html>
   );
 }

@@ -123,6 +123,53 @@ export async function POST(request) {
       return NextResponse.json({ received: false }, { status: 500 });
     }
 
+    // Commission d'affiliation — best-effort, ne doit jamais faire échouer le paiement.
+    try {
+      const { data: org } = await supabase
+        .from("organizations")
+        .select("referred_by_affiliate_id")
+        .eq("id", organizationId)
+        .single();
+
+      if (org?.referred_by_affiliate_id) {
+        const { data: affiliate } = await supabase
+          .from("affiliates")
+          .select("id, balance, total_earned, status")
+          .eq("id", org.referred_by_affiliate_id)
+          .single();
+
+        if (affiliate?.status === "actif") {
+          const { data: rateRow } = await supabase
+            .from("app_settings")
+            .select("value")
+            .eq("key", "affiliate_commission_rate")
+            .maybeSingle();
+          const rate = parseFloat(rateRow?.value) || 10;
+          const commission = Math.round((Number(finalAmount) * rate) / 100);
+
+          if (commission > 0) {
+            await supabase.from("affiliate_commissions").insert({
+              affiliate_id: affiliate.id,
+              organization_id: organizationId,
+              subscription_payment_id: payment.id,
+              amount: commission,
+              rate,
+            });
+            await supabase
+              .from("affiliates")
+              .update({
+                balance: Number(affiliate.balance) + commission,
+                total_earned: Number(affiliate.total_earned) + commission,
+                updated_at: now,
+              })
+              .eq("id", affiliate.id);
+          }
+        }
+      }
+    } catch (affError) {
+      console.error("Bictorys webhook: affiliate commission failed", affError);
+    }
+
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
     console.error("Bictorys webhook error:", error);

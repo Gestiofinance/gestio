@@ -3,6 +3,7 @@ import { SidebarProvider } from "@/contexts/sidebar-context";
 import { SubscriptionGate } from "@/components/subscription-gate";
 import { AuthProvider } from "@/contexts/auth-context";
 import { VisitorNotifications } from "@/components/notifications/visitor-notifications";
+import { ReferralLinker } from "@/components/affiliate/referral-linker";
 
 export default function DashboardLayout({ children }) {
   return (
@@ -14,6 +15,7 @@ export default function DashboardLayout({ children }) {
             <SubscriptionGate>{children}</SubscriptionGate>
           </main>
           <VisitorNotifications />
+          <ReferralLinker />
         </div>
       </SidebarProvider>
     </AuthProvider>

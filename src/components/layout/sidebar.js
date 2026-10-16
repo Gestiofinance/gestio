@@ -24,6 +24,7 @@ import {
   ConciergeBell,
   IdCard,
   Package,
+  Share2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -166,6 +167,22 @@ export function Sidebar() {
               <p className="text-sm font-medium text-white truncate">{profile.full_name}</p>
               <p className="text-xs text-slate-400 truncate">{profile.email}</p>
             </div>
+          )}
+          {isOrgAdmin && (
+            <Link
+              href="/dashboard/affiliation"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                pathname.startsWith("/dashboard/affiliation")
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : "text-emerald-400 hover:text-emerald-300 hover:bg-slate-800"
+              )}
+              title={collapsed ? "Affiliation" : undefined}
+            >
+              <Share2 className="w-5 h-5 shrink-0" />
+              {!collapsed && <span>Affiliation</span>}
+            </Link>
           )}
           {isOrgAdmin && (
             <button
