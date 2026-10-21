@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { notifyAdmin, adminNotifTemplate } from "@/lib/email/notify-admin";
 
 const ORG_ADMIN_ROLES = ["proprietaire", "administrateur"];
 
@@ -76,6 +77,16 @@ export async function POST(request) {
       .select()
       .single();
     if (insertError) throw insertError;
+
+    const { data: org } = await admin.from("organizations").select("name").eq("id", affiliate.organization_id).maybeSingle();
+    await notifyAdmin(admin, {
+      subject: `Nouvelle demande de retrait — ${amt.toLocaleString("fr-FR")} FCFA`,
+      html: adminNotifTemplate("Demande de retrait affiliation", [
+        ["Entreprise", org?.name],
+        ["Montant", `${amt.toLocaleString("fr-FR")} FCFA`],
+        ["Téléphone", phone.trim()],
+      ]),
+    });
 
     return NextResponse.json({ withdrawal });
   } catch (e) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyAdmin, adminNotifTemplate } from "@/lib/email/notify-admin";
 
 function getPeriodEnd(billingCycle) {
   const end = new Date();
@@ -169,6 +170,18 @@ export async function POST(request) {
     } catch (affError) {
       console.error("Bictorys webhook: affiliate commission failed", affError);
     }
+
+    const { data: notifOrg } = await supabase.from("organizations").select("name").eq("id", organizationId).maybeSingle();
+    await notifyAdmin(supabase, {
+      subject: `Paiement reçu — ${finalAmount} FCFA`,
+      html: adminNotifTemplate("Abonnement pris / renouvelé", [
+        ["Entreprise", notifOrg?.name],
+        ["Montant", `${finalAmount} FCFA`],
+        ["Plan", planId],
+        ["Cycle", billingCycle],
+        ["Référence", paymentReference],
+      ]),
+    });
 
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {

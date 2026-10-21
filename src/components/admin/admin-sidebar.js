@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard, Users, CreditCard, TrendingUp, LogOut, ArrowLeft, Settings, LifeBuoy, Share2,
+  LayoutDashboard, Users, CreditCard, TrendingUp, LogOut, ArrowLeft, Settings, LifeBuoy, Share2, Mail,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -15,6 +15,7 @@ const navigation = [
   { name: "Abonnements", href: "/admin/abonnements", icon: CreditCard },
   { name: "Revenus", href: "/admin/revenus", icon: TrendingUp },
   { name: "Affiliation", href: "/admin/affiliation", icon: Share2 },
+  { name: "Marketing", href: "/admin/marketing", icon: Mail },
   { name: "Support", href: "/admin/support", icon: LifeBuoy },
   { name: "Paramètres", href: "/admin/parametres", icon: Settings },
 ];

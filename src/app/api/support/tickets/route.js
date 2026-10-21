@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { notifyAdmin, adminNotifTemplate } from "@/lib/email/notify-admin";
 
 const ORG_ADMIN_ROLES = ["proprietaire", "administrateur"];
 
@@ -84,6 +85,17 @@ export async function POST(request) {
       message: message.trim(),
     });
     if (messageError) throw messageError;
+
+    const { data: org } = await admin.from("organizations").select("name").eq("id", caller.profile.organization_id).maybeSingle();
+    await notifyAdmin(admin, {
+      subject: `Nouveau ticket support — ${subject.trim()}`,
+      html: adminNotifTemplate("Nouveau ticket support", [
+        ["Entreprise", org?.name],
+        ["Catégorie", category],
+        ["Urgence", severity],
+        ["Sujet", subject.trim()],
+      ]),
+    });
 
     return NextResponse.json({ ticket });
   } catch (e) {
