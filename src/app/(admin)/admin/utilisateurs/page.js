@@ -10,6 +10,7 @@ import {
 
 const statusColors = {
   trial: "text-warning-400 bg-warning-400/10 border-warning-400/20",
+  trial_expired: "text-danger-400 bg-danger-400/10 border-danger-400/20",
   active: "text-success-400 bg-success-400/10 border-success-400/20",
   past_due: "text-danger-400 bg-danger-400/10 border-danger-400/20",
   suspended: "text-danger-400 bg-danger-400/10 border-danger-400/20",
@@ -17,9 +18,20 @@ const statusColors = {
   expired: "text-slate-400 bg-slate-700 border-slate-600",
 };
 const statusLabels = {
-  trial: "Essai", active: "Actif", past_due: "En retard",
+  trial: "Essai", trial_expired: "Essai expiré", active: "Actif", past_due: "En retard",
   suspended: "Suspendu", cancelled: "Annulé", expired: "Expiré",
 };
+
+// Le statut en base reste "trial" même après la date de fin d'essai (rien ne
+// le fait basculer automatiquement) — on affiche donc un statut calculé pour
+// que la liste reflète la réalité sans dépendre d'un cron.
+function getEffectiveStatus(sub) {
+  if (!sub) return null;
+  if (sub.status === "trial" && sub.trial_end && new Date(sub.trial_end) < new Date()) {
+    return "trial_expired";
+  }
+  return sub.status;
+}
 
 function ActionButton({ icon: Icon, label, onClick, variant = "default" }) {
   const styles = {
@@ -196,7 +208,7 @@ export default function AdminUsersPage() {
   }
 
   const filtered = orgs.filter((o) => {
-    if (filterStatus && o.sub?.status !== filterStatus) return false;
+    if (filterStatus && getEffectiveStatus(o.sub) !== filterStatus) return false;
     const q = search.toLowerCase();
     return o.name.toLowerCase().includes(q) || (o.owner?.email || "").toLowerCase().includes(q);
   });
@@ -204,8 +216,8 @@ export default function AdminUsersPage() {
   const stats = {
     total: orgs.length,
     active: orgs.filter((o) => o.sub?.status === "active").length,
-    trial: orgs.filter((o) => o.sub?.status === "trial" || !o.sub).length,
-    expired: orgs.filter((o) => ["expired", "cancelled", "suspended"].includes(o.sub?.status)).length,
+    trial: orgs.filter((o) => getEffectiveStatus(o.sub) === "trial" || !o.sub).length,
+    expired: orgs.filter((o) => ["expired", "cancelled", "suspended", "trial_expired"].includes(getEffectiveStatus(o.sub))).length,
   };
 
   const isSuspended = selected?.sub?.status === "suspended";
@@ -253,6 +265,7 @@ export default function AdminUsersPage() {
         >
           <option value="">Tous les statuts</option>
           <option value="trial">En essai</option>
+          <option value="trial_expired">Essai expiré</option>
           <option value="active">Actif</option>
           <option value="past_due">En retard</option>
           <option value="suspended">Suspendu</option>
@@ -312,8 +325,8 @@ export default function AdminUsersPage() {
                   <td className="px-6 py-3">
                     {org.sub ? (
                       <span className="inline-flex items-center gap-1.5">
-                        <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${statusColors[org.sub.status] || "text-slate-400"}`}>
-                          {statusLabels[org.sub.status] || org.sub.status}
+                        <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${statusColors[getEffectiveStatus(org.sub)] || "text-slate-400"}`}>
+                          {statusLabels[getEffectiveStatus(org.sub)] || org.sub.status}
                         </span>
                         {org.sub.is_complimentary && <Gift className="w-3.5 h-3.5 text-success-400" title="Accès offert" />}
                       </span>
@@ -374,8 +387,8 @@ export default function AdminUsersPage() {
                       </div>
                       <div className="p-3 bg-slate-700 rounded-lg">
                         <p className="text-xs text-slate-400 mb-1">Statut</p>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${statusColors[selected.sub.status] || "text-slate-400"}`}>
-                          {statusLabels[selected.sub.status] || selected.sub.status}
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${statusColors[getEffectiveStatus(selected.sub)] || "text-slate-400"}`}>
+                          {statusLabels[getEffectiveStatus(selected.sub)] || selected.sub.status}
                         </span>
                       </div>
                       {selected.sub.is_complimentary && (
