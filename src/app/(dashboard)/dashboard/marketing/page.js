@@ -166,6 +166,24 @@ export default function MarketingPage() {
 
   const filters = useMemo(() => ({ statuses, productIds }), [statuses, productIds]);
 
+  // Suggestions pour le champ "Thématique" du modal modèle : les thématiques
+  // prédéfinies + celles déjà créées librement par l'organisation.
+  const themeSuggestions = useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    for (const t of ORG_EMAIL_THEMES) {
+      if (t.key === "custom" || seen.has(t.key)) continue;
+      seen.add(t.key);
+      list.push({ key: t.key, label: t.label });
+    }
+    for (const t of templates) {
+      if (!t.theme || seen.has(t.theme)) continue;
+      seen.add(t.theme);
+      list.push({ key: t.theme, label: t.theme });
+    }
+    return list;
+  }, [templates]);
+
   async function handlePreviewRecipients() {
     setPreviewing(true);
     try {
@@ -588,10 +606,18 @@ export default function MarketingPage() {
               <Input label="Nom du modèle" value={templateEditor.name} onChange={(e) => setTemplateEditor({ ...templateEditor, name: e.target.value })} placeholder="Ex: Relance devis" />
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">Thématique (optionnel)</label>
-                <select value={templateEditor.theme} onChange={(e) => setTemplateEditor({ ...templateEditor, theme: e.target.value })} className={INPUT_CLASS}>
-                  <option value="">— Aucune —</option>
-                  {ORG_EMAIL_THEMES.filter((t) => t.key !== "custom").map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-                </select>
+                <input
+                  type="text"
+                  list="theme-suggestions"
+                  value={templateEditor.theme}
+                  onChange={(e) => setTemplateEditor({ ...templateEditor, theme: e.target.value })}
+                  placeholder="Ex: Relance devis, Fidélisation... (laisser vide si aucune)"
+                  className={INPUT_CLASS}
+                />
+                <datalist id="theme-suggestions">
+                  {themeSuggestions.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+                </datalist>
+                <p className="text-xs text-muted mt-1">Choisissez une thématique existante ou tapez-en une nouvelle.</p>
               </div>
             </div>
             <Input label="Objet de l'email" value={templateEditor.subject} onChange={(e) => setTemplateEditor({ ...templateEditor, subject: e.target.value })} placeholder="Objet — {{prenom}} et {{entreprise}} disponibles" />
