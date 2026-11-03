@@ -5,6 +5,7 @@ import { formatShortDate } from "@/lib/utils";
 import { EMAIL_THEMES, EMAIL_PRESETS } from "@/lib/email/presets";
 import {
   Mail, Send, Users, Save, Check, Loader2, AlertTriangle, X, Bell,
+  FileText, Trash2, History, Eye,
 } from "lucide-react";
 
 const INPUT_CLASS =
@@ -39,7 +40,25 @@ const campaignStatusLabels = {
 
 const emptyComposer = { name: "", theme: "", subject: "", html: "" };
 
+const notifCategoryLabels = {
+  nouvelle_inscription: "Nouvelle inscription",
+  paiement: "Paiement",
+  ticket_support: "Ticket support",
+  retrait_affiliation: "Retrait affiliation",
+};
+
+function themeLabel(key) {
+  return EMAIL_THEMES.find((t) => t.key === key)?.label || key || "—";
+}
+
+function logCategoryLabel(log) {
+  if (log.type === "campagne") return themeLabel(log.category);
+  return notifCategoryLabels[log.category] || log.category || "—";
+}
+
 export default function AdminMarketingPage() {
+  const [tab, setTab] = useState("campagnes");
+
   const [adminNotifyEmail, setAdminNotifyEmail] = useState("");
   const [hasResendKey, setHasResendKey] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -48,6 +67,11 @@ export default function AdminMarketingPage() {
   const [templates, setTemplates] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+  const [deleteTemplate, setDeleteTemplate] = useState(null);
+  const [previewTemplate, setPreviewTemplate] = useState(null);
+
+  const [logs, setLogs] = useState([]);
+  const [loadingLogs, setLoadingLogs] = useState(true);
 
   const [composer, setComposer] = useState(emptyComposer);
   const [statuses, setStatuses] = useState([]);
@@ -68,6 +92,7 @@ export default function AdminMarketingPage() {
     loadSettings();
     loadTemplates();
     loadCampaigns();
+    loadLogs();
   }, []);
 
   async function loadSettings() {
@@ -97,6 +122,25 @@ export default function AdminMarketingPage() {
       setCampaigns(data.campaigns || []);
     } catch {}
     setLoadingCampaigns(false);
+  }
+
+  async function loadLogs() {
+    setLoadingLogs(true);
+    try {
+      const res = await fetch("/api/admin/marketing/logs");
+      const data = await res.json();
+      setLogs(data.logs || []);
+    } catch {}
+    setLoadingLogs(false);
+  }
+
+  async function handleDeleteTemplate() {
+    if (!deleteTemplate) return;
+    try {
+      await fetch(`/api/admin/marketing/templates/${deleteTemplate.id}`, { method: "DELETE" });
+      setDeleteTemplate(null);
+      loadTemplates();
+    } catch {}
   }
 
   async function handleSaveSettings() {
@@ -237,6 +281,27 @@ export default function AdminMarketingPage() {
         </div>
       </div>
 
+      {/* Onglets */}
+      <div className="flex gap-2 border-b border-slate-700">
+        {[
+          { value: "campagnes", label: "Campagnes", icon: Mail },
+          { value: "modeles", label: "Modèles", icon: FileText },
+          { value: "journal", label: "Journal", icon: History },
+        ].map((t) => (
+          <button
+            key={t.value}
+            onClick={() => setTab(t.value)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              tab === t.value ? "border-violet-500 text-white" : "border-transparent text-slate-400 hover:text-white"
+            }`}
+          >
+            <t.icon className="w-4 h-4" /> {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "campagnes" && (
+      <>
       {/* Composeur de campagne */}
       <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
         <div className="flex items-center gap-3 mb-5">
@@ -401,6 +466,126 @@ export default function AdminMarketingPage() {
           </table>
         </div>
       </div>
+      </>
+      )}
+
+      {tab === "modeles" && (
+        <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-700">
+            <h2 className="text-base font-semibold text-white">Modèles enregistrés</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Modèles personnalisés que vous avez sauvegardés depuis le composeur de campagnes.</p>
+          </div>
+          {templates.length === 0 ? (
+            <p className="text-center py-12 text-slate-500 text-sm">Aucun modèle enregistré pour le moment.</p>
+          ) : (
+            <div className="divide-y divide-slate-700/50">
+              {templates.map((t) => (
+                <div key={t.id} className="flex items-start justify-between gap-4 px-6 py-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium text-white">{t.name}</p>
+                      {t.theme && (
+                        <span className="text-xs px-2 py-0.5 rounded-full border border-slate-600 text-slate-400">{themeLabel(t.theme)}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1 truncate">{t.subject}</p>
+                    <p className="text-xs text-slate-500 mt-1">Créé le {formatShortDate(t.created_at)}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => setPreviewTemplate(t)} className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white" title="Aperçu">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setDeleteTemplate(t)} className="p-2 rounded-lg hover:bg-danger-400/10 text-slate-400 hover:text-danger-400" title="Supprimer">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "journal" && (
+        <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-700">
+            <h2 className="text-base font-semibold text-white">Journal des emails envoyés</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Campagnes et notifications automatiques, les {logs.length} derniers envois.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  <th className="text-left text-xs font-medium text-slate-400 px-6 py-3">Type</th>
+                  <th className="text-left text-xs font-medium text-slate-400 px-6 py-3">Catégorie</th>
+                  <th className="text-left text-xs font-medium text-slate-400 px-6 py-3">Destinataire</th>
+                  <th className="text-left text-xs font-medium text-slate-400 px-6 py-3">Objet</th>
+                  <th className="text-left text-xs font-medium text-slate-400 px-6 py-3">Statut</th>
+                  <th className="text-left text-xs font-medium text-slate-400 px-6 py-3">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingLogs ? (
+                  <tr><td colSpan={6} className="text-center py-12 text-slate-500 text-sm">Chargement...</td></tr>
+                ) : logs.length === 0 ? (
+                  <tr><td colSpan={6} className="text-center py-12 text-slate-500 text-sm">Aucun email envoyé pour le moment</td></tr>
+                ) : logs.map((l) => (
+                  <tr key={l.id} className="border-b border-slate-700/50">
+                    <td className="px-6 py-3">
+                      <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${l.type === "campagne" ? "text-primary-400 bg-primary-400/10 border-primary-400/20" : "text-violet-400 bg-violet-400/10 border-violet-400/20"}`}>
+                        {l.type === "campagne" ? "Campagne" : "Notification"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-sm text-slate-300">{logCategoryLabel(l)}</td>
+                    <td className="px-6 py-3 text-sm text-slate-300">{l.recipient_name ? `${l.recipient_name} — ` : ""}{l.recipient_email}</td>
+                    <td className="px-6 py-3 text-sm text-slate-400 max-w-[260px] truncate">{l.subject}</td>
+                    <td className="px-6 py-3">
+                      <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${l.status === "envoye" ? "text-success-400 bg-success-400/10 border-success-400/20" : "text-danger-400 bg-danger-400/10 border-danger-400/20"}`} title={l.error_message || ""}>
+                        {l.status === "envoye" ? "Envoyé" : "Échec"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-sm text-slate-500">{formatShortDate(l.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Aperçu modèle */}
+      {previewTemplate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/60" onClick={() => setPreviewTemplate(null)} />
+          <div className="relative bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg mx-4 p-6 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between mb-4 shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-white">{previewTemplate.name}</h3>
+                <p className="text-xs text-slate-400 mt-0.5">{previewTemplate.subject}</p>
+              </div>
+              <button onClick={() => setPreviewTemplate(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="bg-white rounded-lg overflow-auto flex-1">
+              <div className="p-2" dangerouslySetInnerHTML={{ __html: previewTemplate.html_body }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation suppression modèle */}
+      {deleteTemplate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/60" onClick={() => setDeleteTemplate(null)} />
+          <div className="relative bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm mx-4 p-6">
+            <h3 className="text-lg font-bold text-white mb-2">Supprimer ce modèle ?</h3>
+            <p className="text-sm text-slate-400 mb-4">« {deleteTemplate.name} » sera définitivement supprimé. Les campagnes déjà envoyées avec ce modèle ne sont pas affectées.</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setDeleteTemplate(null)} className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-700 text-slate-300 hover:bg-slate-600">Annuler</button>
+              <button onClick={handleDeleteTemplate} className="px-4 py-2 rounded-lg text-sm font-medium bg-danger-600 text-white hover:bg-danger-700">Supprimer</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal enregistrer modèle */}
       {showSaveTemplate && (

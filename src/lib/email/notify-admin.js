@@ -1,4 +1,5 @@
 import { sendEmail } from "./resend";
+import { logEmail } from "./log";
 
 // Petit gabarit commun pour les emails internes envoyés au super admin
 // (nouvelle inscription, paiement reçu, ticket support, retrait affiliation).
@@ -22,8 +23,11 @@ export function adminNotifTemplate(title, rows) {
 
 // Best-effort — ne doit jamais faire échouer le flux appelant (paiement,
 // création de ticket, inscription...). `admin` est un client Supabase déjà
-// créé avec createAdminClient() côté appelant.
-export async function notifyAdmin(admin, { subject, html }) {
+// créé avec createAdminClient() côté appelant. `category` identifie la
+// nature de l'alerte (nouvelle_inscription, paiement, ticket_support,
+// retrait_affiliation...) pour le journal visible dans /admin/marketing.
+export async function notifyAdmin(admin, { subject, html, category }) {
+  let adminEmail = null;
   try {
     if (!process.env.RESEND_API_KEY) return;
 
@@ -32,11 +36,15 @@ export async function notifyAdmin(admin, { subject, html }) {
       .select("value")
       .eq("key", "admin_notify_email")
       .maybeSingle();
-    const adminEmail = data?.value;
+    adminEmail = data?.value;
     if (!adminEmail) return;
 
     await sendEmail({ to: adminEmail, subject, html });
+    await logEmail(admin, { type: "notification", category, to: adminEmail, subject, status: "envoye" });
   } catch (e) {
     console.error("notifyAdmin failed:", e);
+    if (adminEmail) {
+      await logEmail(admin, { type: "notification", category, to: adminEmail, subject, status: "echec", error: e.message });
+    }
   }
 }

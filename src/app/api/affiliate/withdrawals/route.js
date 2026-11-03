@@ -81,6 +81,7 @@ export async function POST(request) {
     const { data: org } = await admin.from("organizations").select("name").eq("id", affiliate.organization_id).maybeSingle();
     await notifyAdmin(admin, {
       subject: `Nouvelle demande de retrait — ${amt.toLocaleString("fr-FR")} FCFA`,
+      category: "retrait_affiliation",
       html: adminNotifTemplate("Demande de retrait affiliation", [
         ["Entreprise", org?.name],
         ["Montant", `${amt.toLocaleString("fr-FR")} FCFA`],

@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { resolveRecipients } from "@/lib/email/recipients";
 import { sendEmailBatch, renderMergeTags, hasResendKey } from "@/lib/email/resend";
+import { logEmail } from "@/lib/email/log";
 
 async function requireSuperAdmin() {
   const supabaseServer = await createClient();
@@ -66,20 +67,27 @@ export async function POST(request) {
 
     for (let i = 0; i < recipients.length; i += 100) {
       const chunk = recipients.slice(i, i + 100);
-      const emails = chunk.map((r) => {
+      const prepared = chunk.map((r) => {
         const vars = { prenom: (r.name || "").split(" ")[0] || "là", entreprise: r.orgName };
         return {
+          recipient: r,
           to: r.email,
           subject: renderMergeTags(subject.trim(), vars),
           html: renderMergeTags(html, vars),
         };
       });
       try {
-        await sendEmailBatch(emails);
+        await sendEmailBatch(prepared.map(({ to, subject: s, html: h }) => ({ to, subject: s, html: h })));
         sentCount += chunk.length;
+        await Promise.all(prepared.map((p) =>
+          logEmail(admin, { type: "campagne", category: theme || null, campaignId: campaign.id, to: p.to, name: p.recipient.name, subject: p.subject, status: "envoye" })
+        ));
       } catch (e) {
         console.error("Campaign batch send failed:", e);
         failedCount += chunk.length;
+        await Promise.all(prepared.map((p) =>
+          logEmail(admin, { type: "campagne", category: theme || null, campaignId: campaign.id, to: p.to, name: p.recipient.name, subject: p.subject, status: "echec", error: e.message })
+        ));
       }
     }
 

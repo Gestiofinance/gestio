@@ -89,6 +89,7 @@ export async function POST(request) {
     const { data: org } = await admin.from("organizations").select("name").eq("id", caller.profile.organization_id).maybeSingle();
     await notifyAdmin(admin, {
       subject: `Nouveau ticket support — ${subject.trim()}`,
+      category: "ticket_support",
       html: adminNotifTemplate("Nouveau ticket support", [
         ["Entreprise", org?.name],
         ["Catégorie", category],

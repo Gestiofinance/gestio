@@ -174,6 +174,7 @@ export async function POST(request) {
     const { data: notifOrg } = await supabase.from("organizations").select("name").eq("id", organizationId).maybeSingle();
     await notifyAdmin(supabase, {
       subject: `Paiement reçu — ${finalAmount} FCFA`,
+      category: "paiement",
       html: adminNotifTemplate("Abonnement pris / renouvelé", [
         ["Entreprise", notifOrg?.name],
         ["Montant", `${finalAmount} FCFA`],

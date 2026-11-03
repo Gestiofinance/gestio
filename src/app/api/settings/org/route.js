@@ -67,6 +67,7 @@ export async function PUT(request) {
     if (wasOnboarding) {
       await notifyAdmin(admin, {
         subject: `Nouvelle inscription — ${org.name}`,
+        category: "nouvelle_inscription",
         html: adminNotifTemplate("Nouvelle inscription", [
           ["Entreprise", org.name],
           ["Propriétaire", profile?.full_name],
