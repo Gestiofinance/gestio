@@ -25,6 +25,7 @@ import {
   IdCard,
   Package,
   Share2,
+  Megaphone,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,6 +44,7 @@ const navigation = [
   { name: "Devis", href: "/dashboard/devis", icon: FileText, moduleKey: "devis" },
   { name: "Factures", href: "/dashboard/factures", icon: Receipt, moduleKey: "factures" },
   { name: "Comptabilité", href: "/dashboard/comptabilite", icon: PieChart, moduleKey: "comptabilite" },
+  { name: "Marketing", href: "/dashboard/marketing", icon: Megaphone, moduleKey: "marketing" },
   { name: "Signature", href: "/dashboard/signature", icon: PenTool, moduleKey: "signature" },
   { name: "Équipe", href: "/dashboard/equipe", icon: UserCog },
   { name: "Paramètres", href: "/dashboard/parametres", icon: Settings },

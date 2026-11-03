@@ -18,6 +18,7 @@ export async function GET() {
     const { data: templates, error } = await admin
       .from("email_templates")
       .select("*")
+      .is("organization_id", null)
       .order("created_at", { ascending: false });
     if (error) throw error;
 

@@ -38,6 +38,7 @@ const MODULES = [
   { key: "factures", label: "Factures" },
   { key: "comptabilite", label: "Comptabilité" },
   { key: "signature", label: "Signature" },
+  { key: "marketing", label: "Marketing" },
 ];
 
 const ALL_MODULE_KEYS = MODULES.map((m) => m.key);

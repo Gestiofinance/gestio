@@ -21,6 +21,7 @@ export async function GET() {
     const { data: campaigns, error } = await admin
       .from("email_campaigns")
       .select("*")
+      .is("organization_id", null)
       .order("created_at", { ascending: false });
     if (error) throw error;
 
