@@ -82,6 +82,7 @@ export default function ClientsPage() {
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
   const [filterType, setFilterType] = useState("");
+  const [filterProduct, setFilterProduct] = useState("");
   const [filterPeriod, setFilterPeriod] = useState("");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -101,6 +102,7 @@ export default function ClientsPage() {
     clients.filter((c) => {
       if (filterStatus && c.status !== filterStatus) return false;
       if (filterType && c.type !== filterType) return false;
+      if (filterProduct && c.interested_product_id !== filterProduct) return false;
       const q = search.toLowerCase();
       return (
         (c.company_name || "").toLowerCase().includes(q) ||
@@ -135,7 +137,6 @@ export default function ClientsPage() {
     });
     setEditingClient(client);
     setShowForm(true);
-    setActiveMenu(null);
   }
 
   async function handleSave() {
@@ -250,7 +251,7 @@ export default function ClientsPage() {
   const kanbanLabels = { prospect: "Prospects", client: "Clients", non_converti: "Non convertis" };
 
   return (
-    <div onClick={() => setActiveMenu(null)}>
+    <div>
       <Header title="Clients" />
       <div className="p-4 sm:p-6 space-y-4">
         {/* Top bar */}
@@ -279,6 +280,12 @@ export default function ClientsPage() {
                 <option value="">Tous les types</option>
                 <option value="entreprise">Entreprise</option>
                 <option value="particulier">Particulier</option>
+              </select>
+              <select value={filterProduct} onChange={(e) => setFilterProduct(e.target.value)} className="hidden sm:block flex-none max-w-[180px] px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
+                <option value="">Services/Produits</option>
+                {catalogItems.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
               </select>
               <DateFilter period={filterPeriod} setPeriod={setFilterPeriod} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} />
               <Button onClick={openCreate} className="flex-shrink-0">
