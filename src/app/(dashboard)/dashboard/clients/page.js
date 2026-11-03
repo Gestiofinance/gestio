@@ -282,7 +282,7 @@ export default function ClientsPage() {
                 <option value="particulier">Particulier</option>
               </select>
               <select value={filterProduct} onChange={(e) => setFilterProduct(e.target.value)} className="hidden sm:block flex-none max-w-[180px] px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600">
-                <option value="">Services/Produits</option>
+                <option value="">Tous les produits</option>
                 {catalogItems.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
