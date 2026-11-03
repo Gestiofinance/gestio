@@ -12,7 +12,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { useCrud } from "@/hooks/useSupabase";
 import {
   Megaphone, Send, Users, Save, Loader2, AlertTriangle, Lock, CheckCircle2,
-  ArrowRight, FileText, Trash2, Eye,
+  ArrowRight, FileText, Trash2, Eye, Pencil, Plus, Sparkles,
 } from "lucide-react";
 import { ORG_EMAIL_THEMES, ORG_EMAIL_PRESETS } from "@/lib/email/org-presets";
 import { wrapWithOrgBranding } from "@/lib/email/org-branding";
@@ -87,6 +87,9 @@ export default function MarketingPage() {
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [savingTemplate, setSavingTemplate] = useState(false);
+
+  const [templateEditor, setTemplateEditor] = useState(null); // null fermé, {id?, name, theme, subject, html}
+  const [savingTemplateEditor, setSavingTemplateEditor] = useState(false);
 
   const [showConfirmSend, setShowConfirmSend] = useState(false);
   const [sending, setSending] = useState(false);
@@ -194,6 +197,45 @@ export default function MarketingPage() {
     } finally {
       setSavingTemplate(false);
     }
+  }
+
+  function openNewTemplate() {
+    setTemplateEditor({ name: "", theme: "", subject: "", html: "" });
+  }
+
+  function openEditTemplate(t) {
+    setTemplateEditor({ id: t.id, name: t.name, theme: t.theme || "", subject: t.subject, html: t.html_body });
+  }
+
+  async function handleSaveTemplateEditor() {
+    setSavingTemplateEditor(true);
+    try {
+      const url = templateEditor.id ? `/api/marketing/templates/${templateEditor.id}` : "/api/marketing/templates";
+      const method = templateEditor.id ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: templateEditor.theme || null, name: templateEditor.name, subject: templateEditor.subject, html: templateEditor.html }),
+      });
+      if (res.ok) {
+        setTemplateEditor(null);
+        loadTemplates();
+      }
+    } finally {
+      setSavingTemplateEditor(false);
+    }
+  }
+
+  // t = modèle enregistré ({id, theme, name, subject, html_body}) ou prédéfini ({key, name, subject, html})
+  function applyTemplateToComposer(t) {
+    setComposer((c) => ({
+      ...c,
+      theme: t.theme ?? t.key ?? "custom",
+      name: c.name || t.name,
+      subject: t.subject,
+      html: t.html ?? t.html_body,
+    }));
+    setTab("campagnes");
   }
 
   async function handleDeleteTemplate() {
@@ -444,32 +486,64 @@ export default function MarketingPage() {
             )}
 
             {tab === "modeles" && (
-              <Card>
-                <div className="p-4 border-b border-slate-100">
-                  <h3 className="font-semibold text-foreground">Vos modèles enregistrés</h3>
-                </div>
-                {templates.length === 0 ? (
-                  <p className="text-center py-10 text-muted text-sm">Aucun modèle enregistré pour le moment.</p>
-                ) : (
-                  <div className="divide-y divide-slate-100">
-                    {templates.map((t) => (
-                      <div key={t.id} className="flex items-start justify-between gap-4 p-4">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-medium text-foreground">{t.name}</p>
-                            {t.theme && <Badge>{themeLabel(t.theme)}</Badge>}
-                          </div>
-                          <p className="text-xs text-muted mt-1 truncate">{t.subject}</p>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button onClick={() => setPreviewTemplate(t)} className="p-2 rounded-lg hover:bg-slate-100" title="Aperçu"><Eye className="w-4 h-4 text-slate-500" /></button>
-                          <button onClick={() => setDeleteTemplate(t)} className="p-2 rounded-lg hover:bg-danger-50" title="Supprimer"><Trash2 className="w-4 h-4 text-slate-400 hover:text-danger-500" /></button>
-                        </div>
-                      </div>
-                    ))}
+              <>
+                <Card>
+                  <div className="p-4 border-b border-slate-100">
+                    <h3 className="font-semibold text-foreground flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary-500" /> Modèles prédéfinis</h3>
+                    <p className="text-xs text-muted mt-0.5">Prêts à l&apos;emploi, vous pouvez les utiliser tels quels ou les personnaliser dans le composeur.</p>
                   </div>
-                )}
-              </Card>
+                  <div className="divide-y divide-slate-100">
+                    {ORG_EMAIL_THEMES.filter((t) => t.key !== "custom").map((t) => {
+                      const preset = ORG_EMAIL_PRESETS[t.key];
+                      return (
+                        <div key={t.key} className="flex items-start justify-between gap-4 p-4">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground">{t.label}</p>
+                            <p className="text-xs text-muted mt-1 truncate">{preset?.subject}</p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => setPreviewTemplate({ name: t.label, subject: preset?.subject, html_body: preset?.html })} className="p-2 rounded-lg hover:bg-slate-100" title="Aperçu"><Eye className="w-4 h-4 text-slate-500" /></button>
+                            <Button size="sm" variant="secondary" onClick={() => applyTemplateToComposer({ key: t.key, name: t.label, subject: preset?.subject, html: preset?.html })}>Utiliser</Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+
+                <Card>
+                  <div className="flex items-center justify-between gap-3 p-4 border-b border-slate-100">
+                    <div>
+                      <h3 className="font-semibold text-foreground">Vos modèles</h3>
+                      <p className="text-xs text-muted mt-0.5">Vos modèles personnalisés, créés depuis zéro ou enregistrés depuis le composeur.</p>
+                    </div>
+                    <Button size="sm" onClick={openNewTemplate}><Plus className="w-4 h-4" /> Nouveau modèle</Button>
+                  </div>
+                  {templates.length === 0 ? (
+                    <p className="text-center py-10 text-muted text-sm">Aucun modèle personnalisé pour le moment.</p>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {templates.map((t) => (
+                        <div key={t.id} className="flex items-start justify-between gap-4 p-4">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-medium text-foreground">{t.name}</p>
+                              {t.theme && <Badge>{themeLabel(t.theme)}</Badge>}
+                            </div>
+                            <p className="text-xs text-muted mt-1 truncate">{t.subject}</p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => setPreviewTemplate(t)} className="p-2 rounded-lg hover:bg-slate-100" title="Aperçu"><Eye className="w-4 h-4 text-slate-500" /></button>
+                            <button onClick={() => openEditTemplate(t)} className="p-2 rounded-lg hover:bg-slate-100" title="Modifier"><Pencil className="w-4 h-4 text-slate-500" /></button>
+                            <button onClick={() => setDeleteTemplate(t)} className="p-2 rounded-lg hover:bg-danger-50" title="Supprimer"><Trash2 className="w-4 h-4 text-slate-400 hover:text-danger-500" /></button>
+                            <Button size="sm" variant="secondary" onClick={() => applyTemplateToComposer(t)}>Utiliser</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              </>
             )}
           </>
         )}
@@ -504,6 +578,43 @@ export default function MarketingPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Créer / modifier un modèle */}
+      <Modal open={!!templateEditor} onClose={() => setTemplateEditor(null)} title={templateEditor?.id ? "Modifier le modèle" : "Nouveau modèle"} size="lg">
+        {templateEditor && (
+          <div className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Input label="Nom du modèle" value={templateEditor.name} onChange={(e) => setTemplateEditor({ ...templateEditor, name: e.target.value })} placeholder="Ex: Relance devis" />
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Thématique (optionnel)</label>
+                <select value={templateEditor.theme} onChange={(e) => setTemplateEditor({ ...templateEditor, theme: e.target.value })} className={INPUT_CLASS}>
+                  <option value="">— Aucune —</option>
+                  {ORG_EMAIL_THEMES.filter((t) => t.key !== "custom").map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <Input label="Objet de l'email" value={templateEditor.subject} onChange={(e) => setTemplateEditor({ ...templateEditor, subject: e.target.value })} placeholder="Objet — {{prenom}} et {{entreprise}} disponibles" />
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Message — balises {"{{prenom}}"} / {"{{entreprise}}"}</label>
+              <RichTextEditor
+                value={templateEditor.html}
+                onChange={(html) => setTemplateEditor((t) => ({ ...t, html }))}
+                placeholder="Bonjour {{prenom}}..."
+                minHeight={200}
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="secondary" onClick={() => setTemplateEditor(null)}>Annuler</Button>
+              <Button
+                onClick={handleSaveTemplateEditor}
+                disabled={savingTemplateEditor || !templateEditor.name.trim() || !templateEditor.subject.trim() || !templateEditor.html.trim()}
+              >
+                {savingTemplateEditor ? "Enregistrement..." : templateEditor.id ? "Enregistrer les modifications" : "Créer le modèle"}
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Confirmation envoi */}
