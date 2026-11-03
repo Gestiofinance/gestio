@@ -8,12 +8,14 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { useCrud } from "@/hooks/useSupabase";
 import {
   Megaphone, Send, Users, Save, Loader2, AlertTriangle, Lock, CheckCircle2,
   ArrowRight, FileText, Trash2, Eye,
 } from "lucide-react";
 import { ORG_EMAIL_THEMES, ORG_EMAIL_PRESETS } from "@/lib/email/org-presets";
+import { wrapWithOrgBranding } from "@/lib/email/org-branding";
 
 const INPUT_CLASS =
   "w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm text-foreground placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400";
@@ -65,6 +67,7 @@ function UpsellGate() {
 export default function MarketingPage() {
   const [access, setAccess] = useState(undefined); // undefined = loading
   const [tab, setTab] = useState("campagnes");
+  const [org, setOrg] = useState(null);
 
   const { data: catalogItems, fetchAll: fetchCatalogItems } = useCrud("catalog_items");
 
@@ -93,8 +96,17 @@ export default function MarketingPage() {
     loadAccess();
     loadTemplates();
     loadCampaigns();
+    loadOrg();
     fetchCatalogItems({ filters: [["is_active", "eq", true]], order: { column: "name", ascending: true } });
   }, [fetchCatalogItems]);
+
+  async function loadOrg() {
+    try {
+      const res = await fetch("/api/settings/org");
+      const data = await res.json();
+      setOrg(data.org || null);
+    } catch {}
+  }
 
   async function loadAccess() {
     try {
@@ -125,6 +137,10 @@ export default function MarketingPage() {
   }
 
   function loadPreset(themeKey) {
+    if (themeKey === "custom") {
+      setComposer((c) => ({ ...c, theme: "custom", subject: "", html: "" }));
+      return;
+    }
     const preset = ORG_EMAIL_PRESETS[themeKey];
     setComposer((c) => ({
       ...c,
@@ -309,17 +325,26 @@ export default function MarketingPage() {
 
                   <div className="grid lg:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-1.5">Contenu (HTML) — balises {"{{prenom}}"} / {"{{entreprise}}"}</label>
-                      <textarea
-                        value={composer.html} onChange={(e) => setComposer({ ...composer, html: e.target.value })}
-                        rows={12} placeholder="<p>Bonjour {{prenom}}...</p>"
-                        className={`${INPUT_CLASS} font-mono text-xs resize-y`}
+                      <label className="block text-sm font-medium text-foreground mb-1.5">Message — balises {"{{prenom}}"} / {"{{entreprise}}"}</label>
+                      <RichTextEditor
+                        value={composer.html}
+                        onChange={(html) => setComposer((c) => ({ ...c, html }))}
+                        placeholder="Bonjour {{prenom}}..."
+                        minHeight={220}
                       />
+                      <p className="text-xs text-muted mt-1.5">Le logo de votre entreprise (s&apos;il est défini) et vos coordonnées sont ajoutés automatiquement en en-tête et pied de page.</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-1.5">Aperçu</label>
                       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden h-[calc(100%-26px)] min-h-[260px]">
-                        <div className="p-2 overflow-auto h-full" dangerouslySetInnerHTML={{ __html: composer.html || "<p style='color:#94a3b8;font-family:sans-serif;padding:16px'>L'aperçu s'affichera ici.</p>" }} />
+                        <div
+                          className="p-2 overflow-auto h-full"
+                          dangerouslySetInnerHTML={{
+                            __html: composer.html
+                              ? wrapWithOrgBranding(composer.html, org)
+                              : "<p style='color:#94a3b8;font-family:sans-serif;padding:16px'>L'aperçu s'affichera ici.</p>",
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -454,7 +479,7 @@ export default function MarketingPage() {
       <Modal open={!!previewTemplate} onClose={() => setPreviewTemplate(null)} title={previewTemplate?.name || ""} size="md">
         {previewTemplate && (
           <div className="bg-white border border-slate-200 rounded-lg overflow-auto max-h-[60vh]">
-            <div className="p-2" dangerouslySetInnerHTML={{ __html: previewTemplate.html_body }} />
+            <div className="p-2" dangerouslySetInnerHTML={{ __html: wrapWithOrgBranding(previewTemplate.html_body, org) }} />
           </div>
         )}
       </Modal>

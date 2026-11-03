@@ -5,6 +5,7 @@ import { resolveClientRecipients } from "@/lib/email/org-recipients";
 import { sendEmailBatch, renderMergeTags, hasResendKey } from "@/lib/email/resend";
 import { logEmail } from "@/lib/email/log";
 import { getOrgMarketingAccess, getOrgQuota } from "@/lib/email/quota";
+import { wrapWithOrgBranding } from "@/lib/email/org-branding";
 
 async function getOrgId(admin) {
   const supabaseServer = await createClient();
@@ -70,6 +71,12 @@ export async function POST(request) {
       return NextResponse.json({ error: `Quota mensuel insuffisant : il vous reste ${quota.monthlyRemaining} email(s) sur ${quota.monthlyLimit} ce mois-ci.` }, { status: 400 });
     }
 
+    const { data: org } = await admin
+      .from("organizations")
+      .select("name, logo_url, address, city, phone, email")
+      .eq("id", orgId)
+      .maybeSingle();
+
     const { data: campaign, error: createError } = await admin
       .from("email_campaigns")
       .insert({
@@ -97,7 +104,7 @@ export async function POST(request) {
           recipient: r,
           to: r.email,
           subject: renderMergeTags(subject.trim(), vars),
-          html: renderMergeTags(html, vars),
+          html: wrapWithOrgBranding(renderMergeTags(html, vars), org),
         };
       });
       try {
